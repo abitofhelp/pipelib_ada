@@ -1,0 +1,16 @@
+rules:
+  # Comment formatting
+  AlignCommentsOnConsecutiveLines:
+    Enabled: true
+
+  # Indentation
+  ContinuationLineIndentation: 3
+  DeclarationContinuationLineIndentation: 3
+  Indentation: 3
+
+  # Line length
+  LineLength: 120
+
+  # Spacing
+  InsertSpacesForTabs: true
+  TabWidth: 3

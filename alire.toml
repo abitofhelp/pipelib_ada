@@ -1,0 +1,28 @@
+name = "pipelib"
+description = "Reusable pipeline components library"
+version = "0.1.0-dev"
+
+authors = ["A Bit of Help, Inc. - Michael Gardner"]
+maintainers = ["A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>"]
+maintainers-logins = ["abitofhelp"]
+licenses = "MIT"
+website = "https://github.com/abitofhelp/pipelib_ada"
+tags = ["pipeline", "stream", "data", "ada2022"]
+
+[configuration]
+auto_gpr_with = true
+
+[[depends-on]]
+gnat = "*"
+abohlib = "*"
+
+[[pins]]
+abohlib = { path='../abohlib' }
+
+[build-profiles]
+"*" = "development"
+
+[build-switches]
+"*".style_checks = ["-gnatyM120", "-gnatyx", "-gnatye", "-gnatyr", "-gnatyn", "-gnatyu", "-gnatyO"]
+"*".contracts = "yes"
+"*".runtime_checks = "everything"
