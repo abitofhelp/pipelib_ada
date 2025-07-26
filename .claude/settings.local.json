@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__ide__getDiagnostics",
+      "Bash(mkdir:*)",
+      "Bash(alr:*)",
+      "Bash(gnatformat:*)",
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(true)",
+      "Bash(grep:*)",
+      "Bash(sed:*)",
+      "Bash(gprbuild:*)",
+      "Bash(cp:*)",
+      "Bash(ls:*)",
+      "Bash(make:*)"
+    ],
+    "deny": []
+  }
+}

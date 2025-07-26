@@ -1,0 +1,41 @@
+# Alire
+alire/
+config/dependencies/
+config/cache.toml
+
+# Build artifacts
+obj/
+lib/
+bin/
+*.ali
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+
+# Backup files
+*~
+*.bak
+*.swp
+*.swo
+*.orig
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test results
+test-results/
+coverage/
+*.gcda
+*.gcno
+*.gcov
+
+# Documentation
+doc/_build/
