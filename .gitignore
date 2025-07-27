@@ -6,7 +6,6 @@ config/cache.toml
 # Build artifacts
 obj/
 lib/
-bin/
 *.ali
 *.o
 *.a
