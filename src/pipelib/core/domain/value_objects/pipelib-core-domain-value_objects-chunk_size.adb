@@ -257,4 +257,38 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
       return Left.Bytes_Value >= Right.Bytes_Value;
    end ">=";
 
+   -- -----------------------
+   --  Adjust_For_Memory
+   -- -----------------------
+
+   function Adjust_For_Memory
+     (Size : Chunk_Size_Type;
+      Available_Memory : Long_Long_Integer;
+      Parallel_Chunks : Natural := 1) return Chunk_Size_Type
+   is
+      --  Calculate memory needed for parallel chunks
+      Total_Memory_Needed : constant Long_Long_Integer :=
+        Long_Long_Integer (Size.Bytes_Value) * Long_Long_Integer (Parallel_Chunks);
+
+      --  Reserve at least 512MB for system and other processes
+      Reserved_Memory : constant Long_Long_Integer := 512 * SI_MB;
+      Usable_Memory : constant Long_Long_Integer :=
+        Long_Long_Integer'Max (0, Available_Memory - Reserved_Memory);
+   begin
+      if Total_Memory_Needed <= Usable_Memory then
+         --  We have enough memory, use the requested size
+         return Size;
+      else
+         --  Reduce chunk size to fit in available memory
+         declare
+            Max_Chunk_Size : constant Long_Long_Integer :=
+              Usable_Memory / Long_Long_Integer (Parallel_Chunks);
+            Adjusted_Size : constant Natural :=
+              Natural'Max (MIN_SIZE, Natural'Min (Natural (Max_Chunk_Size), Size.Bytes_Value));
+         begin
+            return (Ada.Finalization.Controlled with Bytes_Value => Adjusted_Size);
+         end;
+      end if;
+   end Adjust_For_Memory;
+
 end Pipelib.Core.Domain.Value_Objects.Chunk_Size;

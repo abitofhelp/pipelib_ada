@@ -12,9 +12,8 @@ pragma Ada_2022;
 
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Finalization;
-with Ada.Streams;           use Ada.Streams;
 with Abohlib.Core.Domain.Result;
-with Abohlib.Core.Domain.Services.Generic_SHA256_Hasher;
+with Abohlib.Core.Domain.Services.SHA256_Hasher;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk;
 
 generic
@@ -93,22 +92,8 @@ package Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
    function Image (Stage : Hasher_Stage_Type) return String;
 
 private
-   --  For simplicity, we'll use a dummy type and instantiate the generic
-   --  We'll only use the Update_Stream procedure in the implementation
-   type Dummy_Type is null record;
-
-   pragma Warnings (Off, "formal parameter ""Data"" is not referenced");
-   function Dummy_To_Stream (Data : Dummy_Type) return Stream_Element_Array
-   is (Stream_Element_Array'(1 .. 0 => 0));
-   pragma Warnings (On, "formal parameter ""Data"" is not referenced");
-
-   package SHA256 is new
-     Abohlib.Core.Domain.Services.Generic_SHA256_Hasher
-       (Data_Type          => Dummy_Type,
-        To_Stream_Elements => Dummy_To_Stream);
-
    type Hasher_Stage_Type is new Ada.Finalization.Controlled with record
-      Hasher           : SHA256.SHA256_Hasher_Type;
+      Hasher           : Abohlib.Core.Domain.Services.SHA256_Hasher.SHA256_Hasher_Type;
       Chunks_Processed : Natural := 0;
       Bytes_Hashed     : Long_Long_Integer := 0;
       Is_Finalized     : Boolean := False;

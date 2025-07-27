@@ -68,6 +68,14 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    function Is_Optimal_For_File
      (Size : Chunk_Size_Type; File_Size : Long_Long_Integer) return Boolean;
 
+   --  Adjust chunk size based on available memory
+   function Adjust_For_Memory
+     (Size : Chunk_Size_Type;
+      Available_Memory : Long_Long_Integer;
+      Parallel_Chunks : Natural := 1) return Chunk_Size_Type
+     with Pre => Available_Memory > 0 and then Parallel_Chunks > 0,
+          Post => Adjust_For_Memory'Result <= Size;
+
    --  Comparison operators
    overriding
    function "=" (Left, Right : Chunk_Size_Type) return Boolean;

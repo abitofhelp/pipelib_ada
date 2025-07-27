@@ -8,6 +8,8 @@ pragma Ada_2022;
 
 package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
 
+   use Abohlib.Core.Domain.Services.SHA256_Hasher;
+
    -- ----------
    --  Create
    -- ----------
@@ -16,7 +18,7 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
    begin
       return
         (Ada.Finalization.Controlled
-         with Hasher           => SHA256.Create,
+         with Hasher           => Create,
               Chunks_Processed => 0,
               Bytes_Hashed     => 0,
               Is_Finalized     => False,
@@ -36,12 +38,16 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
             (To_Unbounded_String ("Hasher already finalized"));
       end if;
 
-      --  Update the hash with chunk data
-      SHA256.Update_Stream (Stage.Hasher, Chunk.Data);
+      --  Update the hash with chunk data using direct access to avoid stack copy
+      declare
+         Chunk_Data : constant Stream_Element_Array_Access := Data_Access (Chunk);
+      begin
+         Update (Stage.Hasher, Chunk_Data.all);
+      end;
 
       --  Update statistics
       Stage.Chunks_Processed := Stage.Chunks_Processed + 1;
-      Stage.Bytes_Hashed := Stage.Bytes_Hashed + Long_Long_Integer (Chunk.Data_Length);
+      Stage.Bytes_Hashed := Stage.Bytes_Hashed + Long_Long_Integer (Data_Length (Chunk));
 
       --  Pass the chunk through unchanged
       return Chunk_Result.Ok (Chunk);
@@ -62,14 +68,15 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
 
       --  Get the final hash from the SHA256 hasher
       declare
-         Result : constant SHA256.Hash_Result.Result := SHA256.Finalize_Hash (Stage.Hasher);
+         SHA_Result : constant Abohlib.Core.Domain.Services.SHA256_Hasher.Hash_Result.Result :=
+            Finalize_Hash (Stage.Hasher);
       begin
-         if SHA256.Hash_Result.Is_Ok (Result) then
-            Stage.Final_Hash := SHA256.Hash_Result.Get_Ok (Result);
+         if Abohlib.Core.Domain.Services.SHA256_Hasher.Hash_Result.Is_Ok (SHA_Result) then
+            Stage.Final_Hash := Abohlib.Core.Domain.Services.SHA256_Hasher.Hash_Result.Get_Ok (SHA_Result);
             Stage.Is_Finalized := True;
             return Hash_Result.Ok (Stage.Final_Hash);
          else
-            return Hash_Result.Err (SHA256.Hash_Result.Get_Err (Result));
+            return Hash_Result.Err (Abohlib.Core.Domain.Services.SHA256_Hasher.Hash_Result.Get_Err (SHA_Result));
          end if;
       end;
    end Finalize_Hash;
@@ -121,7 +128,7 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
 
    procedure Reset (Stage : in out Hasher_Stage_Type) is
    begin
-      Stage.Hasher := SHA256.Create;
+      Stage.Hasher := Abohlib.Core.Domain.Services.SHA256_Hasher.Create;
       Stage.Chunks_Processed := 0;
       Stage.Bytes_Hashed := 0;
       Stage.Is_Finalized := False;
@@ -152,7 +159,7 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
    overriding
    procedure Initialize (Stage : in out Hasher_Stage_Type) is
    begin
-      Stage.Hasher := SHA256.Create;
+      Stage.Hasher := Abohlib.Core.Domain.Services.SHA256_Hasher.Create;
       Stage.Chunks_Processed := 0;
       Stage.Bytes_Hashed := 0;
       Stage.Is_Finalized := False;
