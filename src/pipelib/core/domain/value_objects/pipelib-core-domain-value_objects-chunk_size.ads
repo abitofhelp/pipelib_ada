@@ -1,98 +1,119 @@
---   =============================================================================
---   Pipelib.Core.Domain.Value_Objects.Chunk_Size - Chunk Size Value Object
---   Copyright (c) 2025 A Bit of Help, Inc.
---   SPDX-License-Identifier: MIT
+--  =============================================================================
+--  Pipelib.Core.Domain.Value_Objects.Chunk_Size - Chunk Size Value Object
+--  Copyright (c) 2025 A Bit of Help, Inc.
+--  SPDX-License-Identifier: MIT
 --
---   Type-safe representation of chunk sizes for pipeline processing.
---   Ensures chunk sizes are within valid bounds and provides convenient
---   methods for working with chunk sizes.
---   =============================================================================
+--  Represents the size of data chunks for pipeline processing.
+--  Provides common chunk sizes and validation.
+--  =============================================================================
 
 pragma Ada_2022;
 
-with Ada.Finalization;
 with Abohlib.Core.Domain.Constants.Bytes;
 
 package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
    use Abohlib.Core.Domain.Constants.Bytes;
 
-   --  Chunk size constraints (using SI units)
-   MIN_SIZE : constant := 1;                    -- 1 byte minimum
-   MAX_SIZE : constant := 512 * SI_MB;          -- 512MB maximum
-   DEFAULT_SIZE : constant := 32 * SI_MB;           -- 32MB default
+   --  Chunk size bounds (1KB to 1GB)
+   MIN_CHUNK_SIZE : constant Long_Long_Integer := SI_KB;
+   MAX_CHUNK_SIZE : constant Long_Long_Integer := SI_GB;
+   DEFAULT_CHUNK_SIZE : constant Long_Long_Integer := 16 * SI_MB;
 
-   --  Type definition for chunk size
-   type Chunk_Size_Type is new Ada.Finalization.Controlled with private;
+   --  Common chunk sizes
+   SIZE_1KB : constant := 1 * SI_KB;
+   SIZE_4KB : constant := 4 * SI_KB;
+   SIZE_64KB : constant := 64 * SI_KB;
+   SIZE_256KB : constant := 256 * SI_KB;
+   SIZE_1MB : constant := 1 * SI_MB;
+   SIZE_4MB : constant := 4 * SI_MB;
+   SIZE_8MB : constant := 8 * SI_MB;
+   SIZE_16MB : constant := 16 * SI_MB;
+   SIZE_32MB : constant := 32 * SI_MB;
+   SIZE_64MB : constant := 64 * SI_MB;
+   SIZE_128MB : constant := 128 * SI_MB;
+   SIZE_256MB : constant := 256 * SI_MB;
+   SIZE_512MB : constant := 512 * SI_MB;
 
-   --  Constructors with contracts
-   function Create (Bytes : Natural) return Chunk_Size_Type
+   --  Chunk size type
+   type Chunk_Size_Type is private
+   with Type_Invariant => Is_Valid (Chunk_Size_Type);
+
+   --  Constructor with validation
+   function Create (Bytes : Long_Long_Integer) return Chunk_Size_Type
    with
-     Pre => Bytes >= MIN_SIZE and then Bytes <= MAX_SIZE,
-     Post => Create'Result.Bytes = Bytes;
+     Pre  => Bytes >= MIN_CHUNK_SIZE and Bytes <= MAX_CHUNK_SIZE,
+     Post => Value (Create'Result) = Bytes and Is_Valid (Create'Result);
 
-   function Create_From_KB (KB : Natural) return Chunk_Size_Type
+   --  Get the value in bytes
+   function Value (Size : Chunk_Size_Type) return Long_Long_Integer
    with
-     Pre => KB > 0 and then KB * SI_KB <= MAX_SIZE,
-     Post => Create_From_KB'Result.Bytes = KB * SI_KB;
+     Pre    => Is_Valid (Size),
+     Post   => Value'Result >= MIN_CHUNK_SIZE and Value'Result <= MAX_CHUNK_SIZE,
+     Inline;
 
-   function Create_From_MB (MB : Natural) return Chunk_Size_Type
+   --  Validation
+   function Is_Valid (Size : Chunk_Size_Type) return Boolean
+   with Inline;
+
+   --  Factory methods
+   function Default return Chunk_Size_Type
    with
-     Pre => MB > 0 and then MB * SI_MB <= MAX_SIZE,
-     Post => Create_From_MB'Result.Bytes = MB * SI_MB;
+     Post => Value (Default'Result) = DEFAULT_CHUNK_SIZE and Is_Valid (Default'Result);
 
-   function Create_Default return Chunk_Size_Type
-   with Post => Create_Default'Result.Bytes = DEFAULT_SIZE;
+   function Min return Chunk_Size_Type
+   with
+     Post => Value (Min'Result) = MIN_CHUNK_SIZE and Is_Valid (Min'Result);
 
-   --  Accessors
-   function Bytes (Size : Chunk_Size_Type) return Natural
-   with Inline;
+   function Max return Chunk_Size_Type
+   with
+     Post => Value (Max'Result) = MAX_CHUNK_SIZE and Is_Valid (Max'Result);
 
-   function As_Bytes (Size : Chunk_Size_Type) return Natural
-   with Inline;
+   --  Convenience constructors
+   function From_KB (KB : Natural) return Chunk_Size_Type
+   with
+     Pre  => Long_Long_Integer (KB) * SI_KB >= MIN_CHUNK_SIZE
+             and Long_Long_Integer (KB) * SI_KB <= MAX_CHUNK_SIZE,
+     Post => Value (From_KB'Result) = Long_Long_Integer (KB) * SI_KB
+             and Is_Valid (From_KB'Result);
 
-   function Kilobytes (Size : Chunk_Size_Type) return Float
-   with Inline;
+   function From_MB (MB : Natural) return Chunk_Size_Type
+   with
+     Pre  => Long_Long_Integer (MB) * SI_MB >= MIN_CHUNK_SIZE
+             and Long_Long_Integer (MB) * SI_MB <= MAX_CHUNK_SIZE,
+     Post => Value (From_MB'Result) = Long_Long_Integer (MB) * SI_MB
+             and Is_Valid (From_MB'Result);
 
-   function Megabytes (Size : Chunk_Size_Type) return Float
-   with Inline;
+   --  Named size constructors
+   function Small return Chunk_Size_Type   -- 1MB
+   with
+     Post => Value (Small'Result) = SIZE_1MB and Is_Valid (Small'Result);
 
-   --  Utility functions
-   function Optimal_For_File_Size
-     (File_Size : Long_Long_Integer) return Chunk_Size_Type;
+   function Medium return Chunk_Size_Type  -- 16MB (default)
+   with
+     Post => Value (Medium'Result) = SIZE_16MB and Is_Valid (Medium'Result);
 
-   function Chunks_Needed_For_File
-     (Size : Chunk_Size_Type; File_Size : Long_Long_Integer)
-      return Long_Long_Integer;
+   function Large return Chunk_Size_Type   -- 64MB
+   with
+     Post => Value (Large'Result) = SIZE_64MB and Is_Valid (Large'Result);
 
-   function Is_Optimal_For_File
-     (Size : Chunk_Size_Type; File_Size : Long_Long_Integer) return Boolean;
-
-   --  Adjust chunk size based on available memory
-   function Adjust_For_Memory
-     (Size : Chunk_Size_Type;
-      Available_Memory : Long_Long_Integer;
-      Parallel_Chunks : Natural := 1) return Chunk_Size_Type
-     with Pre => Available_Memory > 0 and then Parallel_Chunks > 0,
-          Post => Adjust_For_Memory'Result <= Size;
-
-   --  Comparison operators
-   overriding
-   function "=" (Left, Right : Chunk_Size_Type) return Boolean;
-   function "<" (Left, Right : Chunk_Size_Type) return Boolean;
-   function "<=" (Left, Right : Chunk_Size_Type) return Boolean;
-   function ">" (Left, Right : Chunk_Size_Type) return Boolean;
-   function ">=" (Left, Right : Chunk_Size_Type) return Boolean;
-
-   --  String representation
-   function Image (Size : Chunk_Size_Type) return String;
-
-   --  Exceptions
-   Invalid_Chunk_Size : exception;
+   --  Adaptive chunk size based on total size
+   function Adaptive_For_Size (Total_Size : Long_Long_Integer) return Chunk_Size_Type
+   with
+     Pre  => Total_Size > 0,
+     Post => Is_Valid (Adaptive_For_Size'Result)
+             and Value (Adaptive_For_Size'Result) >= MIN_CHUNK_SIZE
+             and Value (Adaptive_For_Size'Result) <= MAX_CHUNK_SIZE;
 
 private
-   type Chunk_Size_Type is new Ada.Finalization.Controlled with record
-      Bytes_Value : Natural;
+
+   type Chunk_Size_Type is record
+      Bytes : Long_Long_Integer range MIN_CHUNK_SIZE .. MAX_CHUNK_SIZE := DEFAULT_CHUNK_SIZE;
    end record;
+
+   function Value (Size : Chunk_Size_Type) return Long_Long_Integer is (Size.Bytes);
+
+   function Is_Valid (Size : Chunk_Size_Type) return Boolean is
+      (Size.Bytes >= MIN_CHUNK_SIZE and Size.Bytes <= MAX_CHUNK_SIZE);
 
 end Pipelib.Core.Domain.Value_Objects.Chunk_Size;

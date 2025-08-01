@@ -60,14 +60,14 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
      (Sequence_Number : Natural;
       Offset          : Long_Long_Integer;
       Data            : Stream_Element_Array;
-      Is_Final        : Boolean) return File_Chunk_Type is
+      Is_Final        : Boolean) return File_Chunk_Result.Result is
    begin
       if Data'Length = 0 then
-         raise Invalid_Chunk with "Chunk data cannot be empty";
+         return File_Chunk_Result.Err (To_Unbounded_String (EMPTY_DATA_ERROR));
       end if;
 
       if Data'Length > MAX_CHUNK_DATA_SIZE then
-         raise Invalid_Chunk with "Chunk data exceeds maximum size";
+         return File_Chunk_Result.Err (To_Unbounded_String (SIZE_EXCEEDED_ERROR));
       end if;
 
       declare
@@ -77,8 +77,7 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
            new Stream_Element_Array'(Data);
          Size     : constant Chunk_Size.Chunk_Size_Type :=
            Chunk_Size.Create (Data'Length);
-      begin
-         return
+         Chunk    : constant File_Chunk_Type :=
            (Ada.Finalization.Controlled
             with
               Id              => To_Unbounded_String (Generate_UUID),
@@ -89,6 +88,8 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
               Checksum        => Null_Unbounded_String,
               Is_Final        => Is_Final,
               Created_At      => Ada.Calendar.Clock);
+      begin
+         return File_Chunk_Result.Ok (Chunk);
       end;
    end Create;
 
@@ -100,21 +101,20 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
      (Sequence_Number : Natural;
       Offset          : Long_Long_Integer;
       Data            : not null Stream_Element_Array_Access;
-      Is_Final        : Boolean) return File_Chunk_Type is
+      Is_Final        : Boolean) return File_Chunk_Result.Result is
    begin
       if Data.all'Length = 0 then
-         raise Invalid_Chunk with "Chunk data cannot be empty";
+         return File_Chunk_Result.Err (To_Unbounded_String (EMPTY_DATA_ERROR));
       end if;
 
       if Data.all'Length > MAX_CHUNK_DATA_SIZE then
-         raise Invalid_Chunk with "Chunk data exceeds maximum size";
+         return File_Chunk_Result.Err (To_Unbounded_String (SIZE_EXCEEDED_ERROR));
       end if;
 
       declare
-         Size : constant Chunk_Size.Chunk_Size_Type :=
+         Size  : constant Chunk_Size.Chunk_Size_Type :=
            Chunk_Size.Create (Data.all'Length);
-      begin
-         return
+         Chunk : constant File_Chunk_Type :=
            (Ada.Finalization.Controlled
             with
               Id              => To_Unbounded_String (Generate_UUID),
@@ -125,6 +125,8 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
               Checksum        => Null_Unbounded_String,
               Is_Final        => Is_Final,
               Created_At      => Ada.Calendar.Clock);
+      begin
+         return File_Chunk_Result.Ok (Chunk);
       end;
    end Create_From_Access;
 
@@ -137,12 +139,16 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
       Offset          : Long_Long_Integer;
       Data            : Stream_Element_Array;
       Checksum        : String;
-      Is_Final        : Boolean) return File_Chunk_Type
+      Is_Final        : Boolean) return File_Chunk_Result.Result
    is
-      Chunk : constant File_Chunk_Type :=
+      Chunk_Result : constant File_Chunk_Result.Result :=
         Create (Sequence_Number, Offset, Data, Is_Final);
    begin
-      return With_Checksum (Chunk, Checksum);
+      if not File_Chunk_Result.Is_Ok (Chunk_Result) then
+         return Chunk_Result;
+      end if;
+
+      return With_Checksum (File_Chunk_Result.Get_Ok (Chunk_Result), Checksum);
    end Create_With_Checksum;
 
    -- ----------------
@@ -150,22 +156,30 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- ----------------
 
    function With_Checksum
-     (Chunk : File_Chunk_Type; Checksum : String) return File_Chunk_Type
+     (Chunk : File_Chunk_Type; Checksum : String) return File_Chunk_Result.Result
    is
-      New_Data : constant Stream_Element_Array_Access :=
-        new Stream_Element_Array'(Chunk.Data.all);
    begin
-      return
-        (Ada.Finalization.Controlled
-         with
-           Id              => Chunk.Id,
-           Sequence_Number => Chunk.Sequence_Number,
-           Offset          => Chunk.Offset,
-           Size            => Chunk.Size,
-           Data            => New_Data,
-           Checksum        => To_Unbounded_String (Checksum),
-           Is_Final        => Chunk.Is_Final,
-           Created_At      => Chunk.Created_At);
+      if Checksum'Length /= 64 then
+         return File_Chunk_Result.Err (To_Unbounded_String (INVALID_CHECKSUM_ERROR));
+      end if;
+
+      declare
+         New_Data : constant Stream_Element_Array_Access :=
+           new Stream_Element_Array'(Chunk.Data.all);
+         New_Chunk : constant File_Chunk_Type :=
+           (Ada.Finalization.Controlled
+            with
+              Id              => Chunk.Id,
+              Sequence_Number => Chunk.Sequence_Number,
+              Offset          => Chunk.Offset,
+              Size            => Chunk.Size,
+              Data            => New_Data,
+              Checksum        => To_Unbounded_String (Checksum),
+              Is_Final        => Chunk.Is_Final,
+              Created_At      => Chunk.Created_At);
+      begin
+         return File_Chunk_Result.Ok (New_Chunk);
+      end;
    end With_Checksum;
 
    -- ------------------------------
@@ -173,136 +187,45 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- ------------------------------
 
    function Calculate_And_Set_Checksum
-     (Chunk : File_Chunk_Type) return File_Chunk_Type
+     (Chunk : File_Chunk_Type) return File_Chunk_Result.Result
    is
-      Checksum : constant String := Calculate_Checksum (Chunk.Data.all);
+      Checksum_Result : constant Checksum_Result.Result := Calculate_Checksum (Chunk.Data.all);
    begin
-      return With_Checksum (Chunk, Checksum);
+      if not Checksum_Result.Is_Ok (Checksum_Result) then
+         return File_Chunk_Result.Err (Checksum_Result.Get_Err (Checksum_Result));
+      end if;
+
+      declare
+         Checksum : constant String := To_String (Checksum_Result.Get_Ok (Checksum_Result));
+      begin
+         return With_Checksum (Chunk, Checksum);
+      end;
    end Calculate_And_Set_Checksum;
 
-   -- ------
-   --  Id
-   -- ------
-
-   function Id (Chunk : File_Chunk_Type) return String is
-   begin
-      return To_String (Chunk.Id);
-   end Id;
-
-   -- -------------------
-   --  Sequence_Number
-   -- -------------------
-
-   function Sequence_Number (Chunk : File_Chunk_Type) return Natural is
-   begin
-      return Chunk.Sequence_Number;
-   end Sequence_Number;
-
-   -- ----------
-   --  Offset
-   -- ----------
-
-   function Offset (Chunk : File_Chunk_Type) return Long_Long_Integer is
-   begin
-      return Chunk.Offset;
-   end Offset;
-
-   -- --------
-   --  Size
-   -- --------
-
-   function Size (Chunk : File_Chunk_Type) return Chunk_Size.Chunk_Size_Type is
-   begin
-      return Chunk.Size;
-   end Size;
-
-   -- --------
-   --  Data
-   -- --------
-
-   function Data (Chunk : File_Chunk_Type) return Stream_Element_Array is
-   begin
-      return Chunk.Data.all;
-   end Data;
-
-   -- ---------------
-   --  Data_Access
-   -- ---------------
-
-   function Data_Access (Chunk : File_Chunk_Type) return not null Stream_Element_Array_Access is
-   begin
-      return Chunk.Data;
-   end Data_Access;
-
-   -- ------------
-   --  Checksum
-   -- ------------
-
-   function Checksum (Chunk : File_Chunk_Type) return String is
-   begin
-      return To_String (Chunk.Checksum);
-   end Checksum;
-
-   -- ----------------
-   --  Has_Checksum
-   -- ----------------
-
-   function Has_Checksum (Chunk : File_Chunk_Type) return Boolean is
-   begin
-      return Length (Chunk.Checksum) > 0;
-   end Has_Checksum;
-
-   -- ------------
-   --  Is_Final
-   -- ------------
-
-   function Is_Final (Chunk : File_Chunk_Type) return Boolean is
-   begin
-      return Chunk.Is_Final;
-   end Is_Final;
-
-   -- --------------
-   --  Created_At
-   -- --------------
-
-   function Created_At (Chunk : File_Chunk_Type) return Ada.Calendar.Time is
-   begin
-      return Chunk.Created_At;
-   end Created_At;
-
-   -- ---------------
-   --  Data_Length
-   -- ---------------
-
-   function Data_Length (Chunk : File_Chunk_Type) return Natural is
-   begin
-      return Chunk.Data'Length;
-   end Data_Length;
-
-   -- ------------
-   --  Is_Empty
-   -- ------------
-
-   function Is_Empty (Chunk : File_Chunk_Type) return Boolean is
-   begin
-      return Chunk.Data'Length = 0;
-   end Is_Empty;
 
    -- -------------------
    --  Verify_Checksum
    -- -------------------
 
-   function Verify_Checksum (Chunk : File_Chunk_Type) return Boolean is
+   function Verify_Checksum (Chunk : File_Chunk_Type) return Validation_Result.Result is
    begin
       if not Has_Checksum (Chunk) then
-         return True; -- No checksum to verify
-
+         return Validation_Result.Ok (True); -- No checksum to verify
       end if;
 
       declare
-         Calculated : constant String := Calculate_Checksum (Chunk.Data.all);
+         Calculated_Result : constant Checksum_Result.Result := Calculate_Checksum (Chunk.Data.all);
       begin
-         return Calculated = To_String (Chunk.Checksum);
+         if not Checksum_Result.Is_Ok (Calculated_Result) then
+            return Validation_Result.Err (Checksum_Result.Get_Err (Calculated_Result));
+         end if;
+
+         declare
+            Calculated : constant String := To_String (Checksum_Result.Get_Ok (Calculated_Result));
+            Is_Valid   : constant Boolean := Calculated = To_String (Chunk.Checksum);
+         begin
+            return Validation_Result.Ok (Is_Valid);
+         end;
       end;
    end Verify_Checksum;
 
@@ -310,32 +233,39 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  Calculate_Checksum
    -- --------------------
 
-   function Calculate_Checksum (Data : Stream_Element_Array) return String is
+   function Calculate_Checksum (Data : Stream_Element_Array) return Checksum_Result.Result is
       use SHA2.SHA_256;
-      Context : SHA2.SHA_256.Context := SHA2.SHA_256.Initialize;
    begin
-      --  SHA2 works directly with Stream_Element_Array, no conversion needed!
-      SHA2.SHA_256.Update (Context, Data);
+      if Data'Length = 0 then
+         return Checksum_Result.Err (To_Unbounded_String ("Cannot calculate checksum of empty data"));
+      end if;
 
-      --  Get the digest
       declare
-         Digest : constant SHA2.SHA_256.Digest := SHA2.SHA_256.Finalize (Context);
-         Result : String (1 .. 64);  -- SHA256 produces 32 bytes = 64 hex chars
-         Hex_Chars : constant String := "0123456789abcdef";
+         Context : SHA2.SHA_256.Context := SHA2.SHA_256.Initialize;
       begin
-         --  Convert digest bytes to hex string
-         for I in Digest'Range loop
-            declare
-               Byte : constant Stream_Element := Digest (I);
-               High_Nibble : constant Natural := Natural (Byte / 16) + 1;
-               Low_Nibble : constant Natural := Natural (Byte mod 16) + 1;
-               Pos : constant Natural := 2 * Natural (I - Digest'First) + 1;
-            begin
-               Result (Pos) := Hex_Chars (High_Nibble);
-               Result (Pos + 1) := Hex_Chars (Low_Nibble);
-            end;
-         end loop;
-         return Result;
+         --  SHA2 works directly with Stream_Element_Array, no conversion needed!
+         SHA2.SHA_256.Update (Context, Data);
+
+         --  Get the digest
+         declare
+            Digest : constant SHA2.SHA_256.Digest := SHA2.SHA_256.Finalize (Context);
+            Result : String (1 .. 64);  -- SHA256 produces 32 bytes = 64 hex chars
+            Hex_Chars : constant String := "0123456789abcdef";
+         begin
+            --  Convert digest bytes to hex string
+            for I in Digest'Range loop
+               declare
+                  Byte : constant Stream_Element := Digest (I);
+                  High_Nibble : constant Natural := Natural (Byte / 16) + 1;
+                  Low_Nibble : constant Natural := Natural (Byte mod 16) + 1;
+                  Pos : constant Natural := 2 * Natural (I - Digest'First) + 1;
+               begin
+                  Result (Pos) := Hex_Chars (High_Nibble);
+                  Result (Pos + 1) := Hex_Chars (Low_Nibble);
+               end;
+            end loop;
+            return Checksum_Result.Ok (To_Unbounded_String (Result));
+         end;
       end;
    end Calculate_Checksum;
 
@@ -371,7 +301,7 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
         & ", offset="
         & Chunk.Offset'Image
         & ", size="
-        & Chunk_Size.Image (Chunk.Size)
+        & Pipelib.Core.Domain.Value_Objects.Chunk_Size.Value (Chunk.Size)'Image
         & ", final="
         & Chunk.Is_Final'Image
         & "]";

@@ -14,7 +14,8 @@
       "Bash(gprbuild:*)",
       "Bash(cp:*)",
       "Bash(ls:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(gnat:*)"
     ],
     "deny": []
   }

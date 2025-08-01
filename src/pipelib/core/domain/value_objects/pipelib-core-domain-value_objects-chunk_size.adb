@@ -1,294 +1,68 @@
---   =============================================================================
---   Pipelib.Core.Domain.Value_Objects.Chunk_Size - Implementation
---   Copyright (c) 2025 A Bit of Help, Inc.
---   SPDX-License-Identifier: MIT
---   =============================================================================
+--  =============================================================================
+--  Pipelib.Core.Domain.Value_Objects.Chunk_Size - Implementation
+--  Copyright (c) 2025 A Bit of Help, Inc.
+--  SPDX-License-Identifier: MIT
+--  =============================================================================
 
 pragma Ada_2022;
 
 package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
-   -- -------------------
-   --  Create
-   -- -------------------
-
-   function Create (Bytes : Natural) return Chunk_Size_Type is
+   --  Constructor with validation
+   function Create (Bytes : Long_Long_Integer) return Chunk_Size_Type is
    begin
-      if Bytes < MIN_SIZE then
-         raise Invalid_Chunk_Size
-           with
-             "Chunk size"
-             & Bytes'Image
-             & " is below minimum of"
-             & MIN_SIZE'Image
-             & " bytes";
-      end if;
-
-      if Bytes > MAX_SIZE then
-         raise Invalid_Chunk_Size
-           with
-             "Chunk size"
-             & Bytes'Image
-             & " exceeds maximum of"
-             & MAX_SIZE'Image
-             & " bytes";
-      end if;
-
-      return (Ada.Finalization.Controlled with Bytes_Value => Bytes);
+      return (Bytes => Bytes);
    end Create;
 
-   -- ----------------------
-   --  Create_From_KB
-   -- ----------------------
+   --  Factory methods (expression functions for performance)
+   function Default return Chunk_Size_Type is
+     ((Bytes => DEFAULT_CHUNK_SIZE));
 
-   function Create_From_KB (KB : Natural) return Chunk_Size_Type is
+   function Min return Chunk_Size_Type is
+     ((Bytes => MIN_CHUNK_SIZE));
+
+   function Max return Chunk_Size_Type is
+     ((Bytes => MAX_CHUNK_SIZE));
+
+   --  Convenience constructors (expression functions for performance)
+   function From_KB (KB : Natural) return Chunk_Size_Type is
+     ((Bytes => Long_Long_Integer (KB) * SI_KB));
+
+   function From_MB (MB : Natural) return Chunk_Size_Type is
+     ((Bytes => Long_Long_Integer (MB) * SI_MB));
+
+   --  Named size constructors (expression functions for performance)
+   function Small return Chunk_Size_Type is
+     ((Bytes => SIZE_1MB));
+
+   function Medium return Chunk_Size_Type is
+     ((Bytes => SIZE_16MB));
+
+   function Large return Chunk_Size_Type is
+     ((Bytes => SIZE_64MB));
+
+   --  Adaptive chunk size based on total size
+   function Adaptive_For_Size (Total_Size : Long_Long_Integer) return Chunk_Size_Type is
+      Chunk_Bytes : Long_Long_Integer;
    begin
-      return Create (KB * SI_KB);
-   end Create_From_KB;
-
-   -- ----------------------
-   --  Create_From_MB
-   -- ----------------------
-
-   function Create_From_MB (MB : Natural) return Chunk_Size_Type is
-   begin
-      return Create (MB * SI_MB);
-   end Create_From_MB;
-
-   -- -------------------
-   --  Create_Default
-   -- -------------------
-
-   function Create_Default return Chunk_Size_Type is
-   begin
-      return (Ada.Finalization.Controlled with Bytes_Value => DEFAULT_SIZE);
-   end Create_Default;
-
-   -- ---------
-   --  Bytes
-   -- ---------
-
-   function Bytes (Size : Chunk_Size_Type) return Natural is
-   begin
-      return Size.Bytes_Value;
-   end Bytes;
-
-   -- ------------
-   --  As_Bytes
-   -- ------------
-
-   function As_Bytes (Size : Chunk_Size_Type) return Natural is
-   begin
-      return Size.Bytes_Value;
-   end As_Bytes;
-
-   -- -------------
-   --  Kilobytes
-   -- -------------
-
-   function Kilobytes (Size : Chunk_Size_Type) return Float is
-   begin
-      return Float (Size.Bytes_Value) / Float (SI_KB);
-   end Kilobytes;
-
-   -- -------------
-   --  Megabytes
-   -- -------------
-
-   function Megabytes (Size : Chunk_Size_Type) return Float is
-   begin
-      return Float (Size.Bytes_Value) / Float (SI_MB);
-   end Megabytes;
-
-   -- -------------------------
-   --  Optimal_For_File_Size
-   -- -------------------------
-
-   function Optimal_For_File_Size
-     (File_Size : Long_Long_Integer) return Chunk_Size_Type
-   is
-      Optimal_Size : Natural;
-   begin
-      --  Empirically optimized chunk sizes based on benchmarks
-      case File_Size is
-         --  Small files: use smaller chunks
-
-         when 0 .. 1_000_000 =>
-            -- <= 1MB
-            Optimal_Size := 64 * SI_KB;           -- 64KB
-
-         when 1_000_001 .. 10_000_000 =>
-            -- <= 10MB
-            Optimal_Size := 256 * SI_KB;          -- 256KB
-
-            --  Medium files: optimized for 16MB chunks
-
-         when 10_000_001 .. 50_000_000 =>
-            -- <= 50MB
-            Optimal_Size := 2 * SI_MB;            -- 2MB
-
-         when 50_000_001 .. 500_000_000 =>
-            -- 50MB-500MB
-            Optimal_Size := 16 * SI_MB;           -- 16MB (optimized)
-
-            --  Large files: balance throughput and memory
-
-         when 500_000_001 .. 2_000_000_000 =>
-            -- 500MB-2GB
-            Optimal_Size := 64 * SI_MB;           -- 64MB
-
-            --  Huge files: maximum throughput
-
-         when others =>
-            -- > 2GB
-            Optimal_Size := 128 * SI_MB;          -- 128MB
-      end case;
-
-      --  Ensure within bounds
-      declare
-         Clamped_Size : constant Natural :=
-           Natural'Max (MIN_SIZE, Natural'Min (Optimal_Size, MAX_SIZE));
-      begin
-         return (Ada.Finalization.Controlled with Bytes_Value => Clamped_Size);
-      end;
-   end Optimal_For_File_Size;
-
-   -- --------------------------
-   --  Chunks_Needed_For_File
-   -- --------------------------
-
-   function Chunks_Needed_For_File
-     (Size : Chunk_Size_Type; File_Size : Long_Long_Integer)
-      return Long_Long_Integer is
-   begin
-      if File_Size = 0 then
-         return 0;
-      end if;
-
-      --  Round up division
-      return
-        (File_Size + Long_Long_Integer (Size.Bytes_Value) - 1)
-        / Long_Long_Integer (Size.Bytes_Value);
-   end Chunks_Needed_For_File;
-
-   -- ----------------------
-   --  Is_Optimal_For_File
-   -- ----------------------
-
-   function Is_Optimal_For_File
-     (Size : Chunk_Size_Type; File_Size : Long_Long_Integer) return Boolean
-   is
-      Optimal : constant Chunk_Size_Type := Optimal_For_File_Size (File_Size);
-   begin
-      return Size.Bytes_Value = Optimal.Bytes_Value;
-   end Is_Optimal_For_File;
-
-   -- ---------
-   --  Image
-   -- ---------
-
-   function Image (Size : Chunk_Size_Type) return String is
-      Bytes_Val : constant Natural := Size.Bytes_Value;
-   begin
-      if Bytes_Val >= SI_MB then
-         declare
-            MB     : constant Float := Float (Bytes_Val) / Float (SI_MB);
-            MB_Str : constant String := MB'Image;
-         begin
-            --  Format as X.XMB
-            return MB_Str (MB_Str'First + 1 .. MB_Str'Last) & "MB";
-         end;
-      elsif Bytes_Val >= SI_KB then
-         declare
-            KB     : constant Float := Float (Bytes_Val) / Float (SI_KB);
-            KB_Str : constant String := KB'Image;
-         begin
-            --  Format as X.XKB
-            return KB_Str (KB_Str'First + 1 .. KB_Str'Last) & "KB";
-         end;
+      if Total_Size < 10 * SI_MB then
+         --  Small files: 256KB chunks
+         Chunk_Bytes := SIZE_256KB;
+      elsif Total_Size < 100 * SI_MB then
+         --  Medium files: 4MB chunks
+         Chunk_Bytes := SIZE_4MB;
+      elsif Total_Size < SI_GB then
+         --  Large files: 16MB chunks
+         Chunk_Bytes := SIZE_16MB;
+      elsif Total_Size < 10 * SI_GB then
+         --  Very large files: 64MB chunks
+         Chunk_Bytes := SIZE_64MB;
       else
-         return Bytes_Val'Image (2 .. Bytes_Val'Image'Last) & "B";
+         --  Huge files: 128MB chunks
+         Chunk_Bytes := SIZE_128MB;
       end if;
-   end Image;
 
-   -- -------
-   --  "="
-   -- -------
-
-   overriding
-   function "=" (Left, Right : Chunk_Size_Type) return Boolean is
-   begin
-      return Left.Bytes_Value = Right.Bytes_Value;
-   end "=";
-
-   -- -------
-   --  "<"
-   -- -------
-
-   function "<" (Left, Right : Chunk_Size_Type) return Boolean is
-   begin
-      return Left.Bytes_Value < Right.Bytes_Value;
-   end "<";
-
-   -- --------
-   --  "<="
-   -- --------
-
-   function "<=" (Left, Right : Chunk_Size_Type) return Boolean is
-   begin
-      return Left.Bytes_Value <= Right.Bytes_Value;
-   end "<=";
-
-   -- -------
-   --  ">"
-   -- -------
-
-   function ">" (Left, Right : Chunk_Size_Type) return Boolean is
-   begin
-      return Left.Bytes_Value > Right.Bytes_Value;
-   end ">";
-
-   -- --------
-   --  ">="
-   -- --------
-
-   function ">=" (Left, Right : Chunk_Size_Type) return Boolean is
-   begin
-      return Left.Bytes_Value >= Right.Bytes_Value;
-   end ">=";
-
-   -- -----------------------
-   --  Adjust_For_Memory
-   -- -----------------------
-
-   function Adjust_For_Memory
-     (Size : Chunk_Size_Type;
-      Available_Memory : Long_Long_Integer;
-      Parallel_Chunks : Natural := 1) return Chunk_Size_Type
-   is
-      --  Calculate memory needed for parallel chunks
-      Total_Memory_Needed : constant Long_Long_Integer :=
-        Long_Long_Integer (Size.Bytes_Value) * Long_Long_Integer (Parallel_Chunks);
-
-      --  Reserve at least 512MB for system and other processes
-      Reserved_Memory : constant Long_Long_Integer := 512 * SI_MB;
-      Usable_Memory : constant Long_Long_Integer :=
-        Long_Long_Integer'Max (0, Available_Memory - Reserved_Memory);
-   begin
-      if Total_Memory_Needed <= Usable_Memory then
-         --  We have enough memory, use the requested size
-         return Size;
-      else
-         --  Reduce chunk size to fit in available memory
-         declare
-            Max_Chunk_Size : constant Long_Long_Integer :=
-              Usable_Memory / Long_Long_Integer (Parallel_Chunks);
-            Adjusted_Size : constant Natural :=
-              Natural'Max (MIN_SIZE, Natural'Min (Natural (Max_Chunk_Size), Size.Bytes_Value));
-         begin
-            return (Ada.Finalization.Controlled with Bytes_Value => Adjusted_Size);
-         end;
-      end if;
-   end Adjust_For_Memory;
+      return (Bytes => Chunk_Bytes);
+   end Adaptive_For_Size;
 
 end Pipelib.Core.Domain.Value_Objects.Chunk_Size;
