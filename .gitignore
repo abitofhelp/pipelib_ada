@@ -4,6 +4,7 @@ config/dependencies/
 config/cache.toml
 
 # Build artifacts
+/bin/
 obj/
 lib/
 *.ali
