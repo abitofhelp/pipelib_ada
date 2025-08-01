@@ -10,6 +10,7 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
 with Ada.Unchecked_Deallocation;
+with Ada.Text_IO;
 with Abohlib.Core.Domain.Constants.Bytes;
 
 package body Pipelib.Infrastructure.IO.Random_Write_File is
@@ -32,7 +33,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
       Use_Temp_File : Boolean := True)
       return Random_Write_File_Access
    is
-      File : constant Random_Write_File_Access := new Random_Write_File_Type;
+      File : constant Random_Write_File_Access := new Random_Write_File;
       Temp_Name : Unbounded_String;
    begin
       File.File_Path := Path;
@@ -44,9 +45,11 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
          File.Temp_Path := Create (To_String (Temp_Name), Output);
 
          --  Create/open temp file
+         null;  -- Creating temp file
          Create (File.File_Handle, Out_File, To_String (File.Temp_Path));
       else
          --  Create/open target file directly
+         null;  -- Creating output file
          Create (File.File_Handle, Out_File, To_String (Path));
       end if;
 
@@ -71,7 +74,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- -----------------------------
 
    procedure Write_Chunk_At_Position
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Chunk : File_Chunk_Type;
       Position : Long_Long_Integer)
    is
@@ -93,12 +96,34 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
       end if;
    end Write_Chunk_At_Position;
 
+   -- ---------------------
+   --  Write_Chunk_At
+   -- ---------------------
+
+   procedure Write_Chunk_At
+     (File : in out Random_Write_File;
+      Chunk : File_Chunk_Type;
+      Position : Long_Long_Integer;
+      Result : in out Write_Result.Result)
+   is
+      use Write_Result;
+   begin
+      begin
+         Write_Chunk_At_Position (File, Chunk, Position);
+         Result := Ok (True);
+      exception
+         when E : others =>
+            Result := Err (To_Unbounded_String ("Failed to write chunk: " &
+                                               Ada.Exceptions.Exception_Message (E)));
+      end;
+   end Write_Chunk_At;
+
    -- -----------------
    --  Write_Chunk
    -- -----------------
 
    procedure Write_Chunk
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Chunk : File_Chunk_Type)
    is
       Position : constant Long_Long_Integer :=
@@ -112,7 +137,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Is_Open
    -- ------------
 
-   function Is_Open (File : Random_Write_File_Type) return Boolean is
+   function Is_Open (File : Random_Write_File) return Boolean is
    begin
       return File.Is_Open_Flag and then Is_Open (File.File_Handle);
    end Is_Open;
@@ -121,7 +146,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Size
    -- --------
 
-   function Size (File : Random_Write_File_Type) return Long_Long_Integer is
+   function Size (File : Random_Write_File) return Long_Long_Integer is
    begin
       return Long_Long_Integer (Ada.Streams.Stream_IO.Size (File.File_Handle));
    end Size;
@@ -130,7 +155,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Commit
    -- ----------
 
-   function Commit (File : in out Random_Write_File_Type) return Write_Result.Result is
+   function Commit (File : in out Random_Write_File) return Write_Result.Result is
       use Write_Result;
    begin
       if not File.Is_Open_Flag then
@@ -171,7 +196,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Rollback
    -- ------------
 
-   procedure Rollback (File : in out Random_Write_File_Type) is
+   procedure Rollback (File : in out Random_Write_File) is
    begin
       if File.Is_Open_Flag then
          Close (File.File_Handle);
@@ -190,7 +215,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Close
    -- ---------
 
-   procedure Close (File : in out Random_Write_File_Type) is
+   procedure Close (File : in out Random_Write_File) is
    begin
       if File.Is_Open_Flag then
          if Is_Open (File.File_Handle) then
@@ -198,13 +223,31 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
          end if;
          File.Is_Open_Flag := False;
       end if;
+
+      --  If using temp file, rename to final
+      if File.Use_Temp then
+         begin
+            --  Delete target if it exists
+            if Ada.Directories.Exists (To_String (File.File_Path)) then
+               Ada.Directories.Delete_File (To_String (File.File_Path));
+            end if;
+
+            --  Rename temp to target
+            Ada.Directories.Rename
+              (Old_Name => To_String (File.Temp_Path),
+               New_Name => To_String (File.File_Path));
+         exception
+            when E : others =>
+               null;  -- Ignore rename errors in Close
+         end;
+      end if;
    end Close;
 
    -- ---------
    --  Flush
    -- ---------
 
-   procedure Flush (File : in out Random_Write_File_Type) is
+   procedure Flush (File : in out Random_Write_File) is
    begin
       Ada.Streams.Stream_IO.Flush (File.File_Handle);
    end Flush;
@@ -214,7 +257,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- ---------------
 
    procedure Preallocate
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Size : Long_Long_Integer)
    is
    begin
@@ -241,7 +284,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
 
    procedure Destroy (File : in out Random_Write_File_Access) is
       procedure Free is new Ada.Unchecked_Deallocation
-        (Random_Write_File_Type, Random_Write_File_Access);
+        (Random_Write_File, Random_Write_File_Access);
    begin
       if File /= null then
          File.Close;
@@ -258,7 +301,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Finalize
    -- ------------
 
-   overriding procedure Finalize (File : in out Random_Write_File_Type) is
+   overriding procedure Finalize (File : in out Random_Write_File) is
    begin
       Rollback (File);  -- Clean up on finalization
    end Finalize;

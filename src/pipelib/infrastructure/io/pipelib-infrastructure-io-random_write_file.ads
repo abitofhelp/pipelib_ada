@@ -19,8 +19,8 @@ with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 package Pipelib.Infrastructure.IO.Random_Write_File is
 
    --  Type representing a random access file writer
-   type Random_Write_File_Type is new Ada.Finalization.Limited_Controlled with private;
-   type Random_Write_File_Access is access all Random_Write_File_Type;
+   type Random_Write_File is new Ada.Finalization.Limited_Controlled with private;
+   type Random_Write_File_Access is access all Random_Write_File;
 
    --  Result types
    package Write_Result is new Abohlib.Core.Domain.Result.Result_Package
@@ -37,43 +37,51 @@ package Pipelib.Infrastructure.IO.Random_Write_File is
 
    --  Write a chunk at a specific position
    procedure Write_Chunk_At_Position
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Chunk : Pipelib.Core.Domain.Value_Objects.File_Chunk.File_Chunk_Type;
       Position : Long_Long_Integer)
      with Pre => Is_Open (File) and then Position >= 0;
 
+   --  Write a chunk at a specific position with Result
+   procedure Write_Chunk_At
+     (File : in out Random_Write_File;
+      Chunk : Pipelib.Core.Domain.Value_Objects.File_Chunk.File_Chunk_Type;
+      Position : Long_Long_Integer;
+      Result : in out Write_Result.Result)
+     with Pre => Is_Open (File) and then Position >= 0;
+
    --  Write a chunk using its sequence number
    procedure Write_Chunk
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Chunk : Pipelib.Core.Domain.Value_Objects.File_Chunk.File_Chunk_Type)
      with Pre => Is_Open (File);
 
    --  Check if file is open
-   function Is_Open (File : Random_Write_File_Type) return Boolean;
+   function Is_Open (File : Random_Write_File) return Boolean;
 
    --  Get current file size
-   function Size (File : Random_Write_File_Type) return Long_Long_Integer
+   function Size (File : Random_Write_File) return Long_Long_Integer
      with Pre => Is_Open (File);
 
    --  Commit the file (rename temp to final if using temp file)
-   function Commit (File : in out Random_Write_File_Type) return Write_Result.Result
+   function Commit (File : in out Random_Write_File) return Write_Result.Result
      with Post => not Is_Open (File);
 
    --  Rollback (delete temp file if using temp file)
-   procedure Rollback (File : in out Random_Write_File_Type)
+   procedure Rollback (File : in out Random_Write_File)
      with Post => not Is_Open (File);
 
    --  Close without committing
-   procedure Close (File : in out Random_Write_File_Type)
+   procedure Close (File : in out Random_Write_File)
      with Post => not Is_Open (File);
 
    --  Flush buffers to disk
-   procedure Flush (File : in out Random_Write_File_Type)
+   procedure Flush (File : in out Random_Write_File)
      with Pre => Is_Open (File);
 
    --  Pre-allocate file space for better performance
    procedure Preallocate
-     (File : in out Random_Write_File_Type;
+     (File : in out Random_Write_File;
       Size : Long_Long_Integer)
      with Pre => Is_Open (File) and then Size > 0;
 
@@ -103,7 +111,7 @@ package Pipelib.Infrastructure.IO.Random_Write_File is
 
 private
 
-   type Random_Write_File_Type is new Ada.Finalization.Limited_Controlled with record
+   type Random_Write_File is new Ada.Finalization.Limited_Controlled with record
       File_Handle : Ada.Streams.Stream_IO.File_Type;
       File_Path   : Abohlib.Core.Domain.Value_Objects.File_Path.File_Path;
       Temp_Path   : Abohlib.Core.Domain.Value_Objects.File_Path.File_Path;
@@ -112,6 +120,6 @@ private
       Chunk_Size   : Natural := 0;  -- For position calculation
    end record;
 
-   overriding procedure Finalize (File : in out Random_Write_File_Type);
+   overriding procedure Finalize (File : in out Random_Write_File);
 
 end Pipelib.Infrastructure.IO.Random_Write_File;

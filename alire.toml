@@ -26,3 +26,6 @@ abohlib = { path='../abohlib' }
 "*".style_checks = ["-gnatyM120", "-gnatyx", "-gnatye", "-gnatyr", "-gnatyn", "-gnatyu", "-gnatyO"]
 "*".contracts = "yes"
 "*".runtime_checks = "everything"
+
+[[depends-on]]
+sha2 = "^2.0.0"

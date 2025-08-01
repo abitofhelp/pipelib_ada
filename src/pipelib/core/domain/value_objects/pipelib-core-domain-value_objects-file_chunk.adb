@@ -9,7 +9,7 @@ pragma Ada_2022;
 with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
-with GNAT.SHA256;
+with SHA2;
 
 package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
 
@@ -311,18 +311,32 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- --------------------
 
    function Calculate_Checksum (Data : Stream_Element_Array) return String is
-      Context : GNAT.SHA256.Context := GNAT.SHA256.Initial_Context;
-
-      --  Convert Stream_Element_Array to String for SHA256
-      Data_String : String (1 .. Data'Length);
+      use SHA2.SHA_256;
+      Context : SHA2.SHA_256.Context := SHA2.SHA_256.Initialize;
    begin
-      for I in Data'Range loop
-         Data_String (Natural (I - Data'First + 1)) :=
-           Character'Val (Data (I));
-      end loop;
+      --  SHA2 works directly with Stream_Element_Array, no conversion needed!
+      SHA2.SHA_256.Update (Context, Data);
 
-      GNAT.SHA256.Update (Context, Data_String);
-      return GNAT.SHA256.Digest (Context);
+      --  Get the digest
+      declare
+         Digest : constant SHA2.SHA_256.Digest := SHA2.SHA_256.Finalize (Context);
+         Result : String (1 .. 64);  -- SHA256 produces 32 bytes = 64 hex chars
+         Hex_Chars : constant String := "0123456789abcdef";
+      begin
+         --  Convert digest bytes to hex string
+         for I in Digest'Range loop
+            declare
+               Byte : constant Stream_Element := Digest (I);
+               High_Nibble : constant Natural := Natural (Byte / 16) + 1;
+               Low_Nibble : constant Natural := Natural (Byte mod 16) + 1;
+               Pos : constant Natural := 2 * Natural (I - Digest'First) + 1;
+            begin
+               Result (Pos) := Hex_Chars (High_Nibble);
+               Result (Pos + 1) := Hex_Chars (Low_Nibble);
+            end;
+         end loop;
+         return Result;
+      end;
    end Calculate_Checksum;
 
    -- -------
