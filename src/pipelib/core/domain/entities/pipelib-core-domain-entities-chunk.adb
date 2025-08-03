@@ -82,14 +82,15 @@ package body Pipelib.Core.Domain.Entities.Chunk is
    begin
       return
          --  Valid state
-         Chunk.State in Chunk_State and
+         Chunk.State'Valid and
 
          --  Data consistency
          (if Chunk.Data /= null then Chunk.Data_Size > 0) and
          (if Chunk.Data = null then Chunk.Data_Size = 0) and
 
          --  Size constraints
-         Long_Long_Integer (Chunk.Data_Size) <= Pipelib.Core.Domain.Value_Objects.Chunk_Size.Value (Chunk.Allocated_Size) and
+         Long_Long_Integer (Chunk.Data_Size) <=
+           Pipelib.Core.Domain.Value_Objects.Chunk_Size.Value (Chunk.Allocated_Size) and
 
          --  Compression consistency
          (if Chunk.Is_Compressed then Chunk.Original_Size > 0);

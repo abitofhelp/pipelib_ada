@@ -10,7 +10,6 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
 with Ada.Unchecked_Deallocation;
-with Ada.Text_IO;
 with Abohlib.Core.Domain.Constants.Bytes;
 
 package body Pipelib.Infrastructure.IO.Random_Write_File is
@@ -237,7 +236,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
               (Old_Name => To_String (File.Temp_Path),
                New_Name => To_String (File.File_Path));
          exception
-            when E : others =>
+            when others =>
                null;  -- Ignore rename errors in Close
          end;
       end if;

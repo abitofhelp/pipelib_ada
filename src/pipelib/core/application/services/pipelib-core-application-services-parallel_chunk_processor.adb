@@ -251,7 +251,6 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
 
    task body Worker_Task_Type is
       Item : Work_Item;
-      Processed_Chunk : File_Chunk_Type;
       Should_Stop : Boolean := False;
    begin
       --  Wait for start signal
@@ -272,10 +271,13 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
 
                --  Process the chunk
                begin
-                  Processed_Chunk := Process_Chunk (Item.Chunk, Parent.Context);
-
-                  --  Write to output file at correct position
-                  Parent.Output_File.Write_Chunk (Processed_Chunk);
+                  declare
+                     Processed_Chunk : constant File_Chunk_Type :=
+                        Process_Chunk (Item.Chunk, Parent.Context);
+                  begin
+                     --  Write to output file at correct position
+                     Parent.Output_File.Write_Chunk (Processed_Chunk);
+                  end;
 
                   --  Update statistics
                   Parent.Statistics.Increment_Processed;

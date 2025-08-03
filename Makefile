@@ -41,29 +41,57 @@ help:
 # Build the library
 build:
 	@echo "$(GREEN)Building $(PROJECT_NAME)...$(NC)"
-	@$(ALR) build
-	@echo "$(GREEN)✓ Build complete$(NC)"
+	@if $(ALR) build; then \
+		echo "$(GREEN)✓ Build complete$(NC)"; \
+	else \
+		echo "$(RED)✗ Build failed$(NC)"; \
+		exit 1; \
+	fi
 
 # Run tests
 test: build
 	@echo "$(GREEN)Running tests...$(NC)"
 	@if [ -d "tests" ] && [ -n "$$(find tests -name '*.adb' -o -name '*.ads' 2>/dev/null)" ]; then \
-		$(ALR) test; \
+		if $(ALR) exec -- gprbuild -P tests.gpr; then \
+			if [ -f "./bin/main" ]; then \
+				if ./bin/main; then \
+					echo "$(GREEN)✓ Tests complete$(NC)"; \
+				else \
+					echo "$(RED)✗ Tests failed$(NC)"; \
+					exit 1; \
+				fi; \
+			else \
+				echo "$(RED)✗ Test binary not found at ./bin/main$(NC)"; \
+				exit 1; \
+			fi; \
+		else \
+			echo "$(RED)✗ Test build failed$(NC)"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "$(YELLOW)No tests found yet$(NC)"; \
 	fi
-	@echo "$(GREEN)✓ Tests complete$(NC)"
 
 # Static analysis
 check:
 	@echo "$(GREEN)Running static analysis...$(NC)"
-	@$(ALR) build --validation
-	@echo "$(GREEN)✓ Static analysis complete$(NC)"
+	@if $(ALR) build --validation; then \
+		echo "$(GREEN)✓ Static analysis complete$(NC)"; \
+	else \
+		echo "$(RED)✗ Static analysis failed$(NC)"; \
+		exit 1; \
+	fi
 
 # Format code
 format:
 	@echo "$(GREEN)Formatting code...$(NC)"
-	@alr exec -- gnatformat
+	@if command -v gnatformat >/dev/null 2>&1; then \
+		$(ALR) exec -- gnatformat; \
+	elif command -v gnatpp >/dev/null 2>&1; then \
+		$(ALR) exec -- $(GNATPP) -rnb src/**/*.ad[sb]; \
+	else \
+		echo "$(YELLOW)Warning: No Ada formatter found (gnatformat or gnatpp)$(NC)"; \
+	fi
 	@echo "$(GREEN)✓ Formatting complete$(NC)"
 
 # Generate documentation
@@ -71,12 +99,17 @@ docs:
 	@echo "$(GREEN)Generating documentation...$(NC)"
 	@mkdir -p docs/api
 	@if command -v gnatdoc >/dev/null 2>&1; then \
-		gnatdoc -P$(PROJECT_NAME).gpr --output=docs/api; \
+		if $(ALR) exec -- gnatdoc -P$(PROJECT_NAME).gpr --output=docs/api; then \
+			echo "$(GREEN)✓ Documentation generated in docs/api/$(NC)"; \
+		else \
+			echo "$(RED)✗ Documentation generation failed$(NC)"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "$(YELLOW)Warning: gnatdoc not found, using basic extraction$(NC)"; \
 		find src -name "*.ads" -exec grep -H "^--" {} \; > docs/api/extracted_docs.txt; \
+		echo "$(GREEN)✓ Basic documentation extracted to docs/api/extracted_docs.txt$(NC)"; \
 	fi
-	@echo "$(GREEN)✓ Documentation generated in docs/api/$(NC)"
 
 # Clean build artifacts
 clean:
@@ -88,8 +121,12 @@ clean:
 # Install library
 install:
 	@echo "$(GREEN)Installing $(PROJECT_NAME)...$(NC)"
-	@$(ALR) install
-	@echo "$(GREEN)✓ Installation complete$(NC)"
+	@if $(ALR) install; then \
+		echo "$(GREEN)✓ Installation complete$(NC)"; \
+	else \
+		echo "$(RED)✗ Installation failed$(NC)"; \
+		exit 1; \
+	fi
 
 # Local CI pipeline - runs everything
 ci: clean format build check test docs

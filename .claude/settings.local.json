@@ -15,7 +15,12 @@
       "Bash(cp:*)",
       "Bash(ls:*)",
       "Bash(make:*)",
-      "Bash(gnat:*)"
+      "Bash(gnat:*)",
+      "Bash(./simple_test)",
+      "Bash(./bin/main)",
+      "Bash(touch:*)",
+      "Bash(echo $?)",
+      "Bash(echo \"Exit code: $?\")"
     ],
     "deny": []
   }

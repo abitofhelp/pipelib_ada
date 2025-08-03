@@ -51,16 +51,14 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
               Storage_Count'Min (Storage_Count (Chunk_Size), Remaining);
             Is_Final : constant Boolean := Current_Offset + This_Chunk_Size >= Actual_End;
 
-            Chunk : File_Chunk_Type;
-         begin
-            --  Create chunk with zero-copy access
-            Chunk := Create_Single_Chunk_From_Memory_Map
+            Chunk : constant File_Chunk_Type := Create_Single_Chunk_From_Memory_Map
               (Map => Map,
                Sequence_Number => Sequence,
                Offset => Current_Offset,
                Length => This_Chunk_Size,
                Is_Final => Is_Final,
                Calculate_Checksum => Config.Calculate_Checksums);
+         begin
 
             File_Chunk_Vectors.Append (Chunks, Chunk);
 
@@ -91,25 +89,26 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
       --  View : constant Memory_View := Map.Get_View;  -- Not used
       Subview : constant Memory_View := Map.Create_Subview (Offset, Length);
       Stream_Access : Stream_Element_Array_Access;
-      Chunk : File_Chunk_Type;
 
    begin
       --  Create Stream_Element_Array_Access pointing to memory-mapped data
       Stream_Access := Create_Stream_Array_Access_From_Memory (Subview, 0, Length);
 
       --  Create File_Chunk using zero-copy access
-      Chunk := Create_From_Access
-        (Sequence_Number => Sequence_Number,
-         Offset => Long_Long_Integer (Offset),
-         Data => Stream_Access,
-         Is_Final => Is_Final);
+      declare
+         Chunk : File_Chunk_Type := Create_From_Access
+           (Sequence_Number => Sequence_Number,
+            Offset => Long_Long_Integer (Offset),
+            Data => Stream_Access,
+            Is_Final => Is_Final);
+      begin
+         --  Add checksum if requested
+         if Calculate_Checksum then
+            Chunk := Calculate_And_Set_Checksum (Chunk);
+         end if;
 
-      --  Add checksum if requested
-      if Calculate_Checksum then
-         Chunk := Calculate_And_Set_Checksum (Chunk);
-      end if;
-
-      return Chunk;
+         return Chunk;
+      end;
    end Create_Single_Chunk_From_Memory_Map;
 
    --  Utility function to determine optimal chunk size based on file size
@@ -166,7 +165,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
      (View : Memory_View;
       Offset : Storage_Count;
       Length : Storage_Count)
-     return Stream_Element_Array_Access is
+     return Pipelib.Core.Domain.Value_Objects.File_Chunk.Stream_Element_Array_Access is
 
       Target_Address : constant System.Address := View.Address + Offset;
    begin
@@ -177,7 +176,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    function Memory_To_Stream_Elements
      (Address : System.Address;
       Length : Storage_Count)
-     return Stream_Element_Array_Access is
+     return Pipelib.Core.Domain.Value_Objects.File_Chunk.Stream_Element_Array_Access is
 
       --  Create a properly sized array type for the conversion
       subtype Target_Array is Stream_Element_Array (1 .. Stream_Element_Offset (Length));

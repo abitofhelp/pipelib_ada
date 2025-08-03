@@ -8,7 +8,6 @@
 --  =============================================================================
 pragma Ada_2022;
 
-with Ada.Streams;
 with System.Storage_Elements;
 with Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk;
@@ -78,14 +77,12 @@ package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
 
 private
 
-   use Ada.Streams;
-
    --  Internal function to create Stream_Element_Array_Access from memory view
    function Create_Stream_Array_Access_From_Memory
      (View : Memory_View;
       Offset : Storage_Count;
       Length : Storage_Count)
-     return Stream_Element_Array_Access
+     return Pipelib.Core.Domain.Value_Objects.File_Chunk.Stream_Element_Array_Access
    with Pre => Offset + Length <= View.Size;
    --  Creates a Stream_Element_Array_Access that points to memory-mapped data
    --  This enables zero-copy access to the file data
@@ -94,7 +91,7 @@ private
    function Memory_To_Stream_Elements
      (Address : System.Address;
       Length : Storage_Count)
-     return Stream_Element_Array_Access;
+     return Pipelib.Core.Domain.Value_Objects.File_Chunk.Stream_Element_Array_Access;
    --  Converts memory address and length to Stream_Element_Array_Access
 
 end Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter;

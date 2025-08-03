@@ -62,6 +62,7 @@
 - Always create a Makefile with required and best practice commands
 - Group Makefile help by function area in ascending order
 - Order commands within groups alphabetically
+- Use `tests.gpr` not `<project>_tests.gpr` for test project files
 
 ### 8. Performance Optimization
 - Prefer compile-time checks over runtime

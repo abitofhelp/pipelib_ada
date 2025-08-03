@@ -63,14 +63,14 @@ package Pipelib.Core.Domain.Services.Stages.Stage_Interface is
    is abstract;
    --  Return the number of bytes processed
 
-   --  Optional operations with default implementations
+   --  Optional operations (implementations can provide their own behavior)
    function Can_Process_In_Parallel (Stage : Stage_Interface) return Boolean
-   is (False);
+   is abstract;
    --  Indicates if this stage can process multiple items in parallel
 
    function Estimated_Throughput_MB_Per_Sec
      (Stage : Stage_Interface) return Float
-   is (0.0);
+   is abstract;
    --  Estimated processing throughput
 
 end Pipelib.Core.Domain.Services.Stages.Stage_Interface;

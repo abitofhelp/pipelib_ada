@@ -113,7 +113,9 @@ private
 
    function Value (Size : Chunk_Size_Type) return Long_Long_Integer is (Size.Bytes);
 
+   pragma Warnings (Off, "condition can only be False if invalid values present");
    function Is_Valid (Size : Chunk_Size_Type) return Boolean is
       (Size.Bytes >= MIN_CHUNK_SIZE and Size.Bytes <= MAX_CHUNK_SIZE);
+   pragma Warnings (On, "condition can only be False if invalid values present");
 
 end Pipelib.Core.Domain.Value_Objects.Chunk_Size;

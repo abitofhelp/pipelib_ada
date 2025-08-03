@@ -7,7 +7,6 @@
 pragma Ada_2022;
 
 with Ada.Text_IO;
-with Ada.Wide_Text_IO;
 
 package body Pipelib.Core.Domain.Services.Progress_Tracker is
 

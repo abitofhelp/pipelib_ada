@@ -1,0 +1,92 @@
+=============================================================================
+Running Pipelib Test Suite
+=============================================================================
+
+Unit Tests
+-----------
+=== Running Chunk Size Unit Tests ===
+
+[PASS] Test_Create_Valid_Size ( 0.000014000s)
+[ERR ] Test_Create_Invalid_Size ( 0.002281000s)
+ERROR:   Unexpected exception: failed precondition from pipelib-core-domain-value_objects-chunk_size.ads:45
+[PASS] Test_Factory_Methods ( 0.000003000s)
+[PASS] Test_Adaptive_Sizing ( 0.000003000s)
+[PASS] Test_Common_Sizes ( 0.000004000s)
+[PASS] Test_Comparisons ( 0.000004000s)
+[PASS] Test_Is_Valid ( 0.000001000s)
+[PASS] Test_Boundary_Values ( 0.000016000s)
+[PASS] Test_Power_Of_Two_Sizes ( 0.000001000s)
+[ERR ] Test_Adaptive_Edge_Cases ( 0.000168000s)
+ERROR:   Unexpected exception: failed precondition from pipelib-core-domain-value_objects-chunk_size.ads:103
+[PASS] Test_Conversion_Accuracy ( 0.000001000s)
+[PASS] Test_Named_Size_Relationships ( 0.000002000s)
+[ERR ] Test_Contract_Violations ( 0.000184000s)
+ERROR:   Unexpected exception: failed precondition from pipelib-core-domain-value_objects-chunk_size.ads:75
+[PASS] Test_Performance_Characteristics ( 0.001094000s)
+
+============================================================
+Test Suite: Chunk Size Unit Tests
+============================================================
+Test Results:
+  Total:    14
+  Passed:   11
+  Failed:   0
+  Skipped:  0
+  Errors:   3
+  Time:     0.003776000s
+ERROR: Result: TESTS FAILED
+Running Chunk_Size suite... OK ( 14 tests,  11 passed,  0 failed)
+=== Running Chunk Unit Tests ===
+
+[PASS] Test_Create_Chunk ( 0.000007000s)
+[PASS] Test_Identity_Immutability ( 0.000003000s)
+[PASS] Test_State_Machine_Transitions ( 0.000003000s)
+[FAIL] Test_Invalid_State_Transitions ( 0.000004000s)
+ERROR:   Written -> Created should be invalid
+[PASS] Test_Data_Management ( 0.000047000s)
+[PASS] Test_Zero_Copy_Operations ( 0.000020000s)
+[PASS] Test_Compression_Info ( 0.000001000s)
+[PASS] Test_Processing_Metrics ( 0.000122000s)
+[PASS] Test_Chunk_Validation ( 0.000005000s)
+[PASS] Test_Chunk_Reset ( 0.000002000s)
+[PASS] Test_Contract_Violations ( 0.000325000s)
+[PASS] Test_Entity_Equality ( 0.000001000s)
+[FAIL] Test_State_Transition_Matrix ( 0.000008000s)
+ERROR:   State transition validation mismatch
+[PASS] Test_Data_Ownership_Transfer ( 0.000015000s)
+[PASS] Test_Concurrent_Access_Safety ( 0.000018000s)
+
+============================================================
+Test Suite: Chunk Unit Tests
+============================================================
+Test Results:
+  Total:    15
+  Passed:   13
+  Failed:   2
+  Skipped:  0
+  Errors:   0
+  Time:     0.000581000s
+ERROR: Result: TESTS FAILED
+Running Chunk suite... OK ( 15 tests,  13 passed,  2 failed)
+=== Running Progress Tracker Unit Tests ===
+
+[PASS] Test_Create_Progress_Tracker ( 0.000009000s)
+[PASS] Test_Update_Read_Count ( 0.000001000s)
+[PASS] Test_Update_Processed_Count ( 0.000003000s)
+[PASS] Test_Update_Written_Count ( 0.000003000s)
+[PASS] Test_Mark_Read_Complete ( 0.000003000s)
+[PASS] Test_Mark_Processing_Complete ( 0.000001000s)
+[PASS] Test_Mark_Writing_Complete ( 0.000001000s)
+[PASS] Test_Get_Progress ( 0.000002000s)
+[ERR ] Test_Concurrent_Updates ( 0.001626000s)
+ERROR:   Unexpected exception: test_progress_tracker.adb:247 range check failed
+[PASS] Test_Multiple_Updates_Same_Counter ( 0.000003000s)
+[PASS] Test_Initial_State ( 0.000002000s)
+[PASS] Test_Progress_Retrieval_Thread_Safety ( 0.000004000s)
+[PASS] Test_All_Stages_Complete ( 0.000001000s)
+
+Execution of ./bin/main terminated by unhandled exception
+raised CONSTRAINT_ERROR : test_progress_tracker.adb:438 index check failed
+Load address: 0x1097ed000
+Call stack traceback locations:
+0x1098817c8 0x1098821a9 0x109882454 0x10988fb3f 0x109890500 0x109903f77 0x109903fc9 0x7ff8104ba52e
