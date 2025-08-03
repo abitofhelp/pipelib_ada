@@ -29,7 +29,10 @@
       "Bash(diff:*)",
       "Bash(awk:*)",
       "Bash(./build/test_runner:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(git tag:*)",
+      "Bash(git push:*)",
+      "Bash(gh release create:*)"
     ],
     "deny": []
   }
