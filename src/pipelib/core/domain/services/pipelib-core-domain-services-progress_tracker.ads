@@ -45,9 +45,9 @@
 --  comprehensive progress visibility:
 --
 --  ```
---  Input Source Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂº Read Stage Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂº Processing Stage Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂº Write Stage Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂº Output
---        Ã¢ÂÂ              Ã¢ÂÂ                Ã¢ÂÂ                 Ã¢ÂÂ
---        Ã¢ÂÂ              Ã¢ÂÂ¼                Ã¢ÂÂ¼                 Ã¢ÂÂ¼
+--  Input Source --> Read Stage --> Processing Stage --> Write Stage --> Output
+--        |              |                |                 |
+--        |              v                v                 v
 --        +--------------> Progress_Tracker <----------------+
 --                     (Thread-Safe)
 --  ```
