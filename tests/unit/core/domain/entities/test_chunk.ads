@@ -77,6 +77,10 @@ private
    with Post => Test_State_Transition_Matrix'Result.Is_Ok or
                 Test_State_Transition_Matrix'Result.Is_Err;
 
+   function Test_State_Transition_Contract_Violations return Void_Result.Result
+   with Post => Test_State_Transition_Contract_Violations'Result.Is_Ok or
+                Test_State_Transition_Contract_Violations'Result.Is_Err;
+
    function Test_Data_Ownership_Transfer return Void_Result.Result
    with Post => Test_Data_Ownership_Transfer'Result.Is_Ok or
                 Test_Data_Ownership_Transfer'Result.Is_Err;

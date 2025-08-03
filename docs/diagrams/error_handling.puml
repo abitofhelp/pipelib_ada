@@ -1,0 +1,83 @@
+@startuml pipelib_error_handling
+!theme plain
+title Error Handling with Result Pattern
+
+participant "Client" as Client
+participant "Use Case" as UseCase
+participant "Domain Service" as Service
+participant "Infrastructure" as Infra
+participant "Result<T,E>" as Result
+
+== Success Path ==
+Client -> UseCase : Process file request
+UseCase -> Service : Validate input
+Service -> Result : Ok(validated_data)
+Result --> UseCase : Result.Is_Ok = True
+
+UseCase -> Infra : Read chunk
+Infra -> Infra : Try read operation
+Infra -> Result : Ok(chunk_data)
+Result --> UseCase : Result.Is_Ok = True
+
+UseCase -> Service : Process chunk
+Service -> Result : Ok(processed_data)
+Result --> UseCase : Result.Is_Ok = True
+
+UseCase -> Result : Ok(success_response)
+Result --> Client : Success
+
+== Error Path ==
+Client -> UseCase : Process file request
+UseCase -> Service : Validate input
+Service -> Result : Err("Invalid chunk size")
+Result --> UseCase : Result.Is_Ok = False
+
+UseCase -> UseCase : Handle validation error
+UseCase -> Result : Err(ValidationError)
+Result --> Client : Error with details
+
+== Infrastructure Error with Retry ==
+Client -> UseCase : Process file request
+UseCase -> Infra : Read chunk
+
+loop Retry up to 3 times
+  Infra -> Infra : Try read operation
+  alt Read succeeds
+    Infra -> Result : Ok(chunk_data)
+    Result --> UseCase : Success
+    break
+  else Read fails
+    Infra -> Result : Err(IOError)
+    Result --> UseCase : Result.Is_Ok = False
+    UseCase -> UseCase : Log error
+    UseCase -> UseCase : Increment retry count
+  end
+end
+
+alt All retries failed
+  UseCase -> Result : Err("Read failed after 3 retries")
+  Result --> Client : Error
+else Success after retry
+  UseCase -> Result : Ok(data)
+  Result --> Client : Success
+end
+
+note over Result
+  **Result Pattern Benefits:**
+  - No exceptions cross boundaries
+  - Explicit error handling
+  - Type-safe error propagation
+  - Composable error handling
+  - Forces error consideration
+end note
+
+note over Infra
+  **Infrastructure Errors:**
+  - File not found
+  - Permission denied
+  - Disk full
+  - Network timeout
+  All wrapped in Result
+end note
+
+@enduml

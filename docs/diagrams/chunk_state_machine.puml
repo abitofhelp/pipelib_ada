@@ -1,0 +1,105 @@
+@startuml pipelib_chunk_state_machine
+!theme plain
+title Chunk Processing State Machine
+
+skinparam state {
+  BackgroundColor<<initial>> LightGreen
+  BackgroundColor<<terminal>> LightPink
+  BackgroundColor<<processing>> LightYellow
+  BackgroundColor<<io>> LightBlue
+}
+
+[*] --> Created : Create()
+
+state "Created" <<initial>> : Initial state after allocation\nNo data assigned yet
+state "Reading" <<io>> : I/O operation in progress\nReading data from source
+state "Read" : Data successfully loaded\nReady for processing
+state "Processing" <<processing>> : Transformation in progress\nApplying pipeline stage
+state "Processed" : Processing complete\nReady for output
+state "Writing" <<io>> : I/O operation in progress\nWriting to destination
+state "Written" <<terminal>> : Final state\nData successfully written
+
+' Normal forward transitions
+Created --> Reading : Begin read operation
+Reading --> Read : Read successful
+Read --> Processing : Start processing
+Processing --> Processed : Processing complete
+Processed --> Writing : Begin write
+Writing --> Written : Write successful
+
+' Retry transitions (error recovery)
+Reading --> Created : Read failed\n(retry)
+Processing --> Read : Processing failed\n(retry)
+Writing --> Processed : Write failed\n(retry)
+
+' Skip transitions
+Read --> Writing : Skip processing\n(pass-through)
+
+' Terminal state
+Written --> [*] : Reset() for reuse
+
+' Notes on states
+note right of Created
+  **Preconditions:**
+  - Chunk number assigned
+  - Size allocated
+  - Data pointer is null
+
+  **Postconditions:**
+  - Can transition to Reading or Read
+end note
+
+note right of Reading
+  **Active I/O State**
+  - File read in progress
+  - Network receive in progress
+  - Can retry on failure
+end note
+
+note right of Read
+  **Decision Point**
+  - Data available for processing
+  - Can skip to Writing if needed
+  - Can retry Processing on failure
+end note
+
+note left of Processing
+  **CPU-bound State**
+  - Algorithm application
+  - Data transformation
+  - Compression/Encryption
+end note
+
+note left of Processed
+  **Ready for Output**
+  - All transformations complete
+  - Can retry Writing on failure
+end note
+
+note left of Writing
+  **Active I/O State**
+  - File write in progress
+  - Network send in progress
+  - Can retry on failure
+end note
+
+note bottom of Written
+  **Terminal State**
+  - No transitions allowed
+  - Must call Reset() to reuse chunk
+  - Chunk can be returned to pool
+end note
+
+' State validation rules
+note top : State Transition Validation Function:\nIs_Valid_Transition(From, To) validates all transitions
+
+' Legend
+legend right
+  |= Color |= State Type |
+  | <#90EE90> | Initial State |
+  | <#FFB6C1> | Terminal State |
+  | <#FFFFE0> | Processing State |
+  | <#ADD8E6> | I/O State |
+endlegend
+
+@enduml

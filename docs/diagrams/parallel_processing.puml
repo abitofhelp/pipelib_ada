@@ -1,0 +1,71 @@
+@startuml pipelib_parallel_processing
+!theme plain
+title Parallel Chunk Processing - Activity Diagram
+
+start
+
+:Client requests file processing;
+
+fork
+  :Create Progress Tracker;
+fork again
+  :Open Input File;
+  :Memory Map File;
+fork again
+  :Open Output File;
+  :Prepare for Random Writes;
+end fork
+
+:Calculate Total Chunks;
+note right
+  Total Chunks = File Size / Chunk Size
+  Chunks are processed in parallel
+end note
+
+:Initialize Thread Pool;
+
+partition "Parallel Processing Loop" {
+  while (More chunks to process?) is (yes)
+    fork
+      :Thread 1: Read Chunk N;
+      :Thread 1: Process Chunk N;
+      :Thread 1: Write Chunk N;
+    fork again
+      :Thread 2: Read Chunk N+1;
+      :Thread 2: Process Chunk N+1;
+      :Thread 2: Write Chunk N+1;
+    fork again
+      :Thread 3: Read Chunk N+2;
+      :Thread 3: Process Chunk N+2;
+      :Thread 3: Write Chunk N+2;
+    fork again
+      :Thread M: Read Chunk N+M;
+      :Thread M: Process Chunk N+M;
+      :Thread M: Write Chunk N+M;
+    end fork
+
+    :Update Progress Tracker;
+    note right
+      Thread-safe progress updates
+      Real-time monitoring
+    end note
+
+  endwhile (no)
+}
+
+:Wait for All Threads;
+:Verify All Chunks Processed;
+
+fork
+  :Close Input File;
+fork again
+  :Flush and Close Output File;
+fork again
+  :Generate Final Report;
+end fork
+
+:Return Success;
+
+stop
+
+@enduml

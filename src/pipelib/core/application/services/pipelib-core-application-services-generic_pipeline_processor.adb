@@ -32,21 +32,22 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Add_Stage
    -- --------------
 
-   procedure Add_Stage (
-      Processor : in out Pipeline_Processor;
+   procedure Add_Stage
+     (Processor : in out Pipeline_Processor;
       Stage     : access Stage_Interface'Class;
       Name      : String) is
    begin
-      Processor.Stages.Append (Stage_Registration'(Stage => Stage, Name => To_Unbounded_String (Name)));
+      Processor.Stages.Append
+        (Stage_Registration'
+           (Stage => Stage, Name => To_Unbounded_String (Name)));
    end Add_Stage;
 
    -- -----------------
    --  Remove_Stage
    -- -----------------
 
-   procedure Remove_Stage (
-      Processor : in out Pipeline_Processor;
-      Name      : String)
+   procedure Remove_Stage
+     (Processor : in out Pipeline_Processor; Name : String)
    is
       Name_UB : constant Unbounded_String := To_Unbounded_String (Name);
    begin
@@ -62,9 +63,8 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Has_Stage
    -- --------------
 
-   function Has_Stage (
-      Processor : Pipeline_Processor;
-      Name      : String) return Boolean
+   function Has_Stage
+     (Processor : Pipeline_Processor; Name : String) return Boolean
    is
       Name_UB : constant Unbounded_String := To_Unbounded_String (Name);
    begin
@@ -89,11 +89,11 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Process
    -- -----------
 
-   function Process (
-      Processor : in out Pipeline_Processor;
-      Input     : Input_Type) return Output_Result.Result
+   function Process
+     (Processor : in out Pipeline_Processor; Input : Input_Type)
+      return Output_Result.Result
    is
-      Start_Time : constant Time := Clock;
+      Start_Time   : constant Time := Clock;
       Current_Data : Stage_Data_Type := Input_To_Stage_Data (Input);
    begin
       Processor.Is_Processing := True;
@@ -103,7 +103,7 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
          for Stage_Reg of Processor.Stages loop
             declare
                Result : constant Status_Result.Result :=
-                  Stage_Reg.Stage.Process_Item (Current_Data);
+                 Stage_Reg.Stage.Process_Item (Current_Data);
             begin
                if not Status_Result.Is_Ok (Result) then
                   Processor.Total_Errors := Processor.Total_Errors + 1;
@@ -120,17 +120,21 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
 
          -- Convert the processed data to output type
          declare
-            Output : constant Output_Type := Stage_Data_To_Output (Current_Data);
+            Output : constant Output_Type :=
+              Stage_Data_To_Output (Current_Data);
          begin
             -- Validate output
             if not Is_Valid_Output (Output) then
                Processor.Total_Errors := Processor.Total_Errors + 1;
                Processor.Is_Processing := False;
-               return Output_Result.Err (To_Unbounded_String ("Invalid output produced"));
+               return
+                 Output_Result.Err
+                   (To_Unbounded_String ("Invalid output produced"));
             end if;
 
             Processor.Total_Processed := Processor.Total_Processed + 1;
-            Processor.Total_Time := Processor.Total_Time + (Clock - Start_Time);
+            Processor.Total_Time :=
+              Processor.Total_Time + (Clock - Start_Time);
             Processor.Is_Processing := False;
             return Output_Result.Ok (Output);
          end;
@@ -142,7 +146,7 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
 
             declare
                Error_Msg : constant Unbounded_String :=
-                  To_Unbounded_String (Ada.Exceptions.Exception_Message (E));
+                 To_Unbounded_String (Ada.Exceptions.Exception_Message (E));
             begin
                if Processor.Error_Handler /= null then
                   Processor.Error_Handler (Error_Msg);
@@ -156,23 +160,27 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Process_Batch
    -- -----------------
 
-   function Process_Batch (
-      Processor : in out Pipeline_Processor;
-      Inputs    : Input_Array) return Output_Array
+   function Process_Batch
+     (Processor : in out Pipeline_Processor; Inputs : Input_Array)
+      return Output_Array
    is
       Results : Output_Array (Inputs'Range);
    begin
       for I in Inputs'Range loop
          declare
-            Result : constant Output_Result.Result := Process (Processor, Inputs (I));
+            Result : constant Output_Result.Result :=
+              Process (Processor, Inputs (I));
          begin
             if Output_Result.Is_Ok (Result) then
                Results (I) := Output_Result.Get_Ok (Result);
             else
                -- For batch processing, raise error
-               raise Program_Error with
-                  "Batch processing failed at index" & I'Image & ": " &
-                  To_String (Output_Result.Get_Err (Result));
+               raise Program_Error
+                 with
+                   "Batch processing failed at index"
+                   & I'Image
+                   & ": "
+                   & To_String (Output_Result.Get_Err (Result));
             end if;
          end;
       end loop;
@@ -183,8 +191,8 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Process_Batch_Parallel
    -- -------------------------
 
-   function Process_Batch_Parallel (
-      Processor    : in out Pipeline_Processor;
+   function Process_Batch_Parallel
+     (Processor    : in out Pipeline_Processor;
       Inputs       : Input_Array;
       Worker_Count : Positive := 4) return Output_Array
    is
@@ -195,13 +203,14 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
       -- Parallel implementation would require task-safe stages
       for I in Inputs'Range loop
          declare
-            Result : constant Output_Result.Result := Process (Processor, Inputs (I));
+            Result : constant Output_Result.Result :=
+              Process (Processor, Inputs (I));
          begin
             if Output_Result.Is_Ok (Result) then
                Results (I) := Output_Result.Get_Ok (Result);
             else
-               raise Program_Error with
-                  "Parallel processing failed at index" & I'Image;
+               raise Program_Error
+                 with "Parallel processing failed at index" & I'Image;
             end if;
          end;
       end loop;
@@ -259,30 +268,34 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    --  Get_Statistics
    -- -------------------
 
-   function Get_Statistics (Processor : Pipeline_Processor) return Pipeline_Statistics is
+   function Get_Statistics
+     (Processor : Pipeline_Processor) return Pipeline_Statistics
+   is
       Success_Rate : Float := 0.0;
       Average_Time : Duration := 0.0;
    begin
       if Processor.Total_Processed > 0 then
-         Success_Rate := Float (Processor.Total_Processed - Processor.Total_Errors) * 100.0 /
-                        Float (Processor.Total_Processed);
+         Success_Rate :=
+           Float (Processor.Total_Processed - Processor.Total_Errors) * 100.0
+           / Float (Processor.Total_Processed);
          Average_Time := Processor.Total_Time / Processor.Total_Processed;
       end if;
 
-      return (Total_Processed  => Processor.Total_Processed,
-              Total_Errors     => Processor.Total_Errors,
-              Success_Rate     => Success_Rate,
-              Average_Time_Ms  => Average_Time,
-              Stage_Statistics => To_Unbounded_String ("{}"));  -- Empty JSON for now
+      return
+        (Total_Processed  => Processor.Total_Processed,
+         Total_Errors     => Processor.Total_Errors,
+         Success_Rate     => Success_Rate,
+         Average_Time_Ms  => Average_Time,
+         Stage_Statistics =>
+           To_Unbounded_String ("{}"));  -- Empty JSON for now
    end Get_Statistics;
 
    -- ----------------------
    --  Set_Error_Handler
    -- ----------------------
 
-   procedure Set_Error_Handler (
-      Processor : in out Pipeline_Processor;
-      Handler   : Error_Handler_Access) is
+   procedure Set_Error_Handler
+     (Processor : in out Pipeline_Processor; Handler : Error_Handler_Access) is
    begin
       Processor.Error_Handler := Handler;
    end Set_Error_Handler;
@@ -294,10 +307,16 @@ package body Pipelib.Core.Application.Services.Generic_Pipeline_Processor is
    function Image (Processor : Pipeline_Processor) return String is
       Stats : constant Pipeline_Statistics := Get_Statistics (Processor);
    begin
-      return "Pipeline[stages=" & Stage_Count (Processor)'Image &
-             ", processed=" & Stats.Total_Processed'Image &
-             ", errors=" & Stats.Total_Errors'Image &
-             ", success_rate=" & Stats.Success_Rate'Image & "%]";
+      return
+        "Pipeline[stages="
+        & Stage_Count (Processor)'Image
+        & ", processed="
+        & Stats.Total_Processed'Image
+        & ", errors="
+        & Stats.Total_Errors'Image
+        & ", success_rate="
+        & Stats.Success_Rate'Image
+        & "%]";
    end Image;
 
 end Pipelib.Core.Application.Services.Generic_Pipeline_Processor;

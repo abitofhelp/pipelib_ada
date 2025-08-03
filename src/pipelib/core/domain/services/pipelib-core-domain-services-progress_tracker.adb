@@ -6,8 +6,6 @@
 
 pragma Ada_2022;
 
-with Ada.Text_IO;
-
 package body Pipelib.Core.Domain.Services.Progress_Tracker is
 
    protected body Progress_Tracker_Type is
@@ -49,62 +47,36 @@ package body Pipelib.Core.Domain.Services.Progress_Tracker is
          Written := Chunks_Written;
       end Get_Progress;
 
-      procedure Display_Progress is
-         -- ANSI escape codes
-         ESC        : constant Character := Character'Val(27);
-         Green      : constant String := ESC & "[32m";
-         Reset      : constant String := ESC & "[0m";
-         -- Simple ASCII checkmark since UTF-8 isn't working properly
-         Checkmark  : constant String := Green & "[OK]" & Reset;
-
-         -- Format number with fixed width (4 digits)
-         function Format_Count (N : Natural) return String is
-            Img : constant String := Natural'Image(N);
-         begin
-            -- Remove leading space and pad to 4 characters
-            if N < 10 then
-               return "   " & Img(Img'First + 1 .. Img'Last);
-            elsif N < 100 then
-               return "  " & Img(Img'First + 1 .. Img'Last);
-            elsif N < 1000 then
-               return " " & Img(Img'First + 1 .. Img'Last);
-            else
-               return Img(Img'First + 1 .. Img'Last);
-            end if;
-         end Format_Count;
-
+      function Is_Read_Complete return Boolean is
       begin
-         if First_Display then
-            First_Display := False;
-            -- Save cursor position on first display
-            Ada.Text_IO.Put (ESC & "[s");
-         else
-            -- Restore cursor position for updates
-            Ada.Text_IO.Put (ESC & "[u");
-         end if;
+         return Read_Complete;
+      end Is_Read_Complete;
 
-         -- Display each line, clearing to end of line
-         Ada.Text_IO.Put ("  Read:      " & Format_Count(Chunks_Read));
-         if Read_Complete then
-            Ada.Text_IO.Put (" " & Checkmark);
-         end if;
-         Ada.Text_IO.Put_Line (ESC & "[K"); -- Clear to end of line
+      function Is_Processing_Complete return Boolean is
+      begin
+         return Process_Complete;
+      end Is_Processing_Complete;
 
-         Ada.Text_IO.Put ("  Processed: " & Format_Count(Chunks_Processed));
-         if Process_Complete then
-            Ada.Text_IO.Put (" " & Checkmark);
-         end if;
-         Ada.Text_IO.Put_Line (ESC & "[K"); -- Clear to end of line
+      function Is_Writing_Complete return Boolean is
+      begin
+         return Write_Complete;
+      end Is_Writing_Complete;
 
-         Ada.Text_IO.Put ("  Written:   " & Format_Count(Chunks_Written));
-         if Write_Complete then
-            Ada.Text_IO.Put (" " & Checkmark);
-         end if;
-         Ada.Text_IO.Put (ESC & "[K"); -- Clear to end of line
-         -- Hide cursor to avoid the white rectangle
-         Ada.Text_IO.Put (ESC & "[?25l");
-         Ada.Text_IO.Flush;
-      end Display_Progress;
+      function Is_All_Complete return Boolean is
+      begin
+         return Read_Complete and Process_Complete and Write_Complete;
+      end Is_All_Complete;
+
+      function Get_Progress_State return Progress_State is
+      begin
+         return
+           (Chunks_Read      => Chunks_Read,
+            Chunks_Processed => Chunks_Processed,
+            Chunks_Written   => Chunks_Written,
+            Read_Complete    => Read_Complete,
+            Process_Complete => Process_Complete,
+            Write_Complete   => Write_Complete);
+      end Get_Progress_State;
 
    end Progress_Tracker_Type;
 

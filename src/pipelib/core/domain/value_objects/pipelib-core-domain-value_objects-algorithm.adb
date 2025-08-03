@@ -38,18 +38,20 @@ package body Pipelib.Core.Domain.Value_Objects.Algorithm is
       Algo_Name : constant String := Name (Self);
    begin
       --  Compression algorithms
-      if Algo_Name in "brotli" | "gzip" | "zstd" | "lz4" | "zlib" | "deflate" then
+      if Algo_Name in "brotli" | "gzip" | "zstd" | "lz4" | "zlib" | "deflate"
+      then
          return Compression;
 
-      --  Encryption algorithms
-      elsif Algo_Name in "aes-256-gcm" | "chacha20-poly1305" | "aes-128-gcm" then
+         --  Encryption algorithms
+      elsif Algo_Name in "aes-256-gcm" | "chacha20-poly1305" | "aes-128-gcm"
+      then
          return Encryption;
 
-      --  Hashing algorithms
+         --  Hashing algorithms
       elsif Algo_Name in "sha256" | "sha512" | "blake3" | "sha1" | "md5" then
          return Hashing;
 
-      --  Custom algorithms
+         --  Custom algorithms
       else
          return Custom;
       end if;
@@ -159,7 +161,8 @@ package body Pipelib.Core.Domain.Value_Objects.Algorithm is
    --  "="
    -- -----
 
-   overriding function "=" (Left, Right : Algorithm_Type) return Boolean is
+   overriding
+   function "=" (Left, Right : Algorithm_Type) return Boolean is
    begin
       return Left.Name_Value = Right.Name_Value;
    end "=";

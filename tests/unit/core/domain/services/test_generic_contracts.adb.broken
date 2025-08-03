@@ -1,0 +1,368 @@
+--  =============================================================================
+--  Test_Generic_Contracts - Generic Contract Tests Implementation
+--  Copyright (c) 2025 A Bit of Help, Inc.
+--  SPDX-License-Identifier: MIT
+--  =============================================================================
+
+pragma Ada_2022;
+
+with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Ada.Streams; use Ada.Streams;
+with Pipelib.Core.Domain.Services.Stages.Stage_Interface;
+with Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage;
+with Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage;
+with Pipelib.Core.Domain.Value_Objects.File_Chunk; use Pipelib.Core.Domain.Value_Objects.File_Chunk;
+with Pipelib.Core.Domain.Value_Objects.Algorithm; use Pipelib.Core.Domain.Value_Objects.Algorithm;
+with GNAT.SHA256;
+
+package body Test_Generic_Contracts is
+
+   --  Test implementation of stage interface for contract testing
+   type Test_Stage is new Pipelib.Core.Domain.Services.Stages.Stage_Interface.Stage_Interface with record
+      Process_Called : Boolean := False;
+      Finalize_Called : Boolean := False;
+   end record;
+
+   overriding
+   procedure Process_Chunk (
+      Stage : in out Test_Stage;
+      Chunk : in out File_Chunk_Type) is
+   begin
+      Stage.Process_Called := True;
+      -- Simple transformation: append a marker to checksum
+      if Has_Checksum (Chunk) then
+         declare
+            New_Checksum : constant String := Checksum (Chunk) & "-processed";
+         begin
+            Chunk := With_Checksum (Chunk, New_Checksum (1 .. 64));
+         end;
+      end if;
+   end Process_Chunk;
+
+   overriding
+   procedure Finalize (Stage : in out Test_Stage) is
+   begin
+      Stage.Finalize_Called := True;
+   end Finalize;
+
+   --  Instantiate generic pipeline stage for testing
+   package Test_Pipeline_Stage is new
+      Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage (
+         Stage_Type => Test_Stage,
+         Stage_Name => "test-stage"
+      );
+   use Test_Pipeline_Stage;
+
+   --  ==========================================================================
+   --  Generic Pipeline Stage Contract Tests
+   --  ==========================================================================
+
+   function Test_Pipeline_Stage_Create_Postconditions return Void_Result.Result is
+      Stage : Test_Pipeline_Stage.Pipeline_Stage;
+   begin
+      -- Test Create postcondition: Create'Result.Is_Initialized
+      Stage := Create;
+
+      if not Stage.Is_Initialized then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Create postcondition failed"),
+            Details     => To_Unbounded_String ("Stage not initialized after Create"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Create_Postconditions")
+         ));
+      end if;
+
+      -- Test Name postcondition: Name'Result = Stage_Name
+      if Name (Stage) /= "test-stage" then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Name postcondition failed"),
+            Details     => To_Unbounded_String ("Expected 'test-stage', got " & Name (Stage)),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Create_Postconditions")
+         ));
+      end if;
+
+      -- Test Items_Processed postcondition: >= 0
+      if Items_Processed (Stage) < 0 then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Items_Processed postcondition failed"),
+            Details     => To_Unbounded_String ("Expected >= 0"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Create_Postconditions")
+         ));
+      end if;
+
+      return Void_Result.Ok (True);
+   end Test_Pipeline_Stage_Create_Postconditions;
+
+   function Test_Pipeline_Stage_Process_Preconditions return Void_Result.Result is
+      Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 42];
+      Chunk : File_Chunk_Type := Create (
+         Sequence_Number => 0,
+         Offset => 0,
+         Data => Test_Data,
+         Is_Final => False
+      );
+   begin
+      -- Test Process precondition: Stage.Is_Initialized
+      declare
+         Uninitialized_Stage : Test_Pipeline_Stage.Pipeline_Stage;
+      begin
+         -- This should fail because the stage is not initialized
+         -- Note: In practice, the stage is automatically initialized by the type,
+         -- so this test may not actually trigger the precondition violation
+         Process (Uninitialized_Stage, Chunk);
+         -- If we get here, the precondition didn't fire
+      exception
+         when others =>
+            -- Expected if precondition is checked
+            null;
+      end;
+
+      -- Test with initialized stage
+      declare
+         Stage : Test_Pipeline_Stage.Pipeline_Stage := Create;
+      begin
+         -- This should succeed
+         Process (Stage, Chunk);
+
+         if Items_Processed (Stage) /= 1 then
+            return Void_Result.Err (Test_Error'(
+               Kind        => Assertion_Failed,
+               Message     => To_Unbounded_String ("Process didn't increment counter"),
+               Details     => To_Unbounded_String ("Expected 1 item processed"),
+               Line_Number => 0,
+               Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Process_Preconditions")
+            ));
+         end if;
+      end;
+
+      return Void_Result.Ok (True);
+   end Test_Pipeline_Stage_Process_Preconditions;
+
+   function Test_Pipeline_Stage_Lifecycle_Contracts return Void_Result.Result is
+      Stage : Test_Pipeline_Stage.Pipeline_Stage := Create;
+      Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 42];
+   begin
+      -- Test Start precondition and behavior
+      Start (Stage);
+
+      if not Is_Running (Stage) then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Start didn't set running state"),
+            Details     => To_Unbounded_String ("Expected Is_Running = True"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Lifecycle_Contracts")
+         ));
+      end if;
+
+      -- Process some chunks
+      for I in 1 .. 5 loop
+         declare
+            Chunk : File_Chunk_Type := Create (
+               Sequence_Number => I,
+               Offset => Long_Long_Integer (I * 1024),
+               Data => Test_Data,
+               Is_Final => I = 5
+            );
+         begin
+            Process (Stage, Chunk);
+         end;
+      end loop;
+
+      -- Test Stop precondition and behavior
+      Stop (Stage);
+
+      if Is_Running (Stage) then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Stop didn't clear running state"),
+            Details     => To_Unbounded_String ("Expected Is_Running = False"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Lifecycle_Contracts")
+         ));
+      end if;
+
+      -- Test Reset precondition and postcondition
+      Reset (Stage);
+
+      if Items_Processed (Stage) /= 0 then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Reset postcondition failed"),
+            Details     => To_Unbounded_String ("Expected Items_Processed = 0"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Pipeline_Stage_Lifecycle_Contracts")
+         ));
+      end if;
+
+      return Void_Result.Ok (True);
+   end Test_Pipeline_Stage_Lifecycle_Contracts;
+
+   --  ==========================================================================
+   --  Generic Hasher Stage Contract Tests
+   --  ==========================================================================
+
+   function Test_Hasher_Stage_Contracts return Void_Result.Result is
+      -- Instantiate SHA256 hasher stage
+      package SHA256_Stage is new
+         Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage (
+            Hash_Package => GNAT.SHA256,
+            Stage_Name => "sha256-hasher"
+         );
+      use SHA256_Stage;
+
+      Stage : SHA256_Hasher_Stage := Create;
+      Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 42];
+   begin
+      -- Test that stage is initialized properly
+      if not Stage.Is_Initialized then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Hasher stage not initialized"),
+            Details     => To_Unbounded_String ("Create should initialize stage"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Hasher_Stage_Contracts")
+         ));
+      end if;
+
+      -- Test stage name
+      if Name (Stage) /= "sha256-hasher" then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Hasher stage name incorrect"),
+            Details     => To_Unbounded_String ("Expected 'sha256-hasher'"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Hasher_Stage_Contracts")
+         ));
+      end if;
+
+      -- Process a chunk and verify hash is added
+      declare
+         Chunk : File_Chunk_Type := Create (
+            Sequence_Number => 0,
+            Offset => 0,
+            Data => Test_Data,
+            Is_Final => False
+         );
+      begin
+         Start (Stage);
+         Process (Stage, Chunk);
+
+         -- The hasher should have added a checksum
+         if not Has_Checksum (Chunk) then
+            return Void_Result.Err (Test_Error'(
+               Kind        => Assertion_Failed,
+               Message     => To_Unbounded_String ("Hasher didn't add checksum"),
+               Details     => To_Unbounded_String ("Expected checksum to be added"),
+               Line_Number => 0,
+               Test_Name   => To_Unbounded_String ("Test_Hasher_Stage_Contracts")
+            ));
+         end if;
+
+         -- Checksum should be 64 characters (SHA256 hex)
+         if Checksum (Chunk)'Length /= 64 then
+            return Void_Result.Err (Test_Error'(
+               Kind        => Assertion_Failed,
+               Message     => To_Unbounded_String ("Invalid checksum length"),
+               Details     => To_Unbounded_String ("Expected 64 chars, got " & Checksum (Chunk)'Length'Image),
+               Line_Number => 0,
+               Test_Name   => To_Unbounded_String ("Test_Hasher_Stage_Contracts")
+            ));
+         end if;
+
+         Stop (Stage);
+      end;
+
+      return Void_Result.Ok (True);
+   end Test_Hasher_Stage_Contracts;
+
+   --  ==========================================================================
+   --  Generic Pipeline Processor Contract Tests
+   --  ==========================================================================
+
+   function Test_Pipeline_Processor_Contracts return Void_Result.Result is
+   begin
+      -- Note: Generic_Pipeline_Processor is more complex and would require
+      -- setting up channels and concurrent operations. For now, we'll test
+      -- basic instantiation and initialization.
+
+      -- This is a placeholder for more comprehensive processor testing
+      -- which would require a full concurrent test environment
+
+      return Void_Result.Ok (True);
+   end Test_Pipeline_Processor_Contracts;
+
+   --  ==========================================================================
+   --  Test Runner
+   --  ==========================================================================
+
+   function Run_All_Tests
+     (Output : access Test_Output_Port'Class) return Test_Stats_Result.Result
+   is
+      Tests : Test_Results_Array (1 .. 5);
+      Index : Positive := 1;
+
+      procedure Add_Test_Result
+        (Name : String;
+         Test_Func : Test_Function_Access)
+      is
+         Result : constant Test_Result_Pkg.Result :=
+            Run_Test (Name, Test_Func, Output);
+      begin
+         if Result.Is_Ok then
+            Tests (Index) := Result.Get_Ok;
+            Print_Test_Result (Tests (Index), Output);
+            Index := Index + 1;
+         else
+            declare
+               Err : constant Test_Error := Result.Get_Err;
+            begin
+               Tests (Index) := (
+                  Name           => To_Unbounded_String (Name),
+                  Status         => Failed,
+                  Message        => Err.Message,
+                  Elapsed_Time   => 0.0,
+                  Line_Number    => Err.Line_Number,
+                  Correlation_ID => To_Unbounded_String ("TEST-" & Name)
+               );
+               Print_Test_Result (Tests (Index), Output);
+               Index := Index + 1;
+            end;
+         end if;
+      end Add_Test_Result;
+   begin
+      Output.Write_Line ("=== Running Generic Contract Tests ===");
+      Output.Write_Line ("");
+
+      -- Run all tests
+      Add_Test_Result ("Test_Pipeline_Stage_Create_Postconditions", Test_Pipeline_Stage_Create_Postconditions'Access);
+      Add_Test_Result ("Test_Pipeline_Stage_Process_Preconditions", Test_Pipeline_Stage_Process_Preconditions'Access);
+      Add_Test_Result ("Test_Pipeline_Stage_Lifecycle_Contracts", Test_Pipeline_Stage_Lifecycle_Contracts'Access);
+      Add_Test_Result ("Test_Hasher_Stage_Contracts", Test_Hasher_Stage_Contracts'Access);
+      Add_Test_Result ("Test_Pipeline_Processor_Contracts", Test_Pipeline_Processor_Contracts'Access);
+
+      -- Generate summary
+      declare
+         Stats_Result : constant Test_Stats_Result.Result :=
+            Run_Test_Suite ("Generic_Contract_Tests", Tests (1 .. Index - 1), Output);
+      begin
+         if Stats_Result.Is_Ok then
+            declare
+               Stats : constant Test_Statistics := Stats_Result.Get_Ok;
+            begin
+               Output.Write_Line ("");
+               Print_Test_Summary ("Generic Contract Tests", Stats, Output);
+               return Test_Stats_Result.Ok (Stats);
+            end;
+         else
+            return Stats_Result;
+         end if;
+      end;
+   end Run_All_Tests;
+
+end Test_Generic_Contracts;

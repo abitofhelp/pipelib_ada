@@ -15,34 +15,36 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    end Create;
 
    --  Factory methods (expression functions for performance)
-   function Default return Chunk_Size_Type is
-     ((Bytes => DEFAULT_CHUNK_SIZE));
+   function Default return Chunk_Size_Type
+   is ((Bytes => DEFAULT_CHUNK_SIZE));
 
-   function Min return Chunk_Size_Type is
-     ((Bytes => MIN_CHUNK_SIZE));
+   function Min return Chunk_Size_Type
+   is ((Bytes => MIN_CHUNK_SIZE));
 
-   function Max return Chunk_Size_Type is
-     ((Bytes => MAX_CHUNK_SIZE));
+   function Max return Chunk_Size_Type
+   is ((Bytes => MAX_CHUNK_SIZE));
 
    --  Convenience constructors (expression functions for performance)
-   function From_KB (KB : Natural) return Chunk_Size_Type is
-     ((Bytes => Long_Long_Integer (KB) * SI_KB));
+   function From_KB (KB : Natural) return Chunk_Size_Type
+   is ((Bytes => Long_Long_Integer (KB) * SI_KB));
 
-   function From_MB (MB : Natural) return Chunk_Size_Type is
-     ((Bytes => Long_Long_Integer (MB) * SI_MB));
+   function From_MB (MB : Natural) return Chunk_Size_Type
+   is ((Bytes => Long_Long_Integer (MB) * SI_MB));
 
    --  Named size constructors (expression functions for performance)
-   function Small return Chunk_Size_Type is
-     ((Bytes => SIZE_1MB));
+   function Small return Chunk_Size_Type
+   is ((Bytes => SIZE_1MB));
 
-   function Medium return Chunk_Size_Type is
-     ((Bytes => SIZE_16MB));
+   function Medium return Chunk_Size_Type
+   is ((Bytes => SIZE_16MB));
 
-   function Large return Chunk_Size_Type is
-     ((Bytes => SIZE_64MB));
+   function Large return Chunk_Size_Type
+   is ((Bytes => SIZE_64MB));
 
    --  Adaptive chunk size based on total size
-   function Adaptive_For_Size (Total_Size : Long_Long_Integer) return Chunk_Size_Type is
+   function Adaptive_For_Size
+     (Total_Size : Long_Long_Integer) return Chunk_Size_Type
+   is
       Chunk_Bytes : Long_Long_Integer;
    begin
       if Total_Size < 10 * SI_MB then

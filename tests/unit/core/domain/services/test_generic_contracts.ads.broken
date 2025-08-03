@@ -1,0 +1,45 @@
+--  =============================================================================
+--  Test_Generic_Contracts - Contract Tests for Generic Components
+--  Copyright (c) 2025 A Bit of Help, Inc.
+--  SPDX-License-Identifier: MIT
+--  =============================================================================
+
+pragma Ada_2022;
+
+with Abohlib.Infrastructure.Testing.Test_Framework;
+
+package Test_Generic_Contracts is
+
+   use Abohlib.Infrastructure.Testing.Test_Framework;
+
+   function Run_All_Tests
+     (Output : access Test_Output_Port'Class) return Test_Stats_Result.Result
+   with Post => Run_All_Tests'Result.Is_Ok or Run_All_Tests'Result.Is_Err;
+   --  Execute all generic contract tests and return statistics
+
+private
+
+   --  Generic Pipeline Stage contract tests
+   function Test_Pipeline_Stage_Create_Postconditions return Void_Result.Result
+   with Post => Test_Pipeline_Stage_Create_Postconditions'Result.Is_Ok or
+                Test_Pipeline_Stage_Create_Postconditions'Result.Is_Err;
+
+   function Test_Pipeline_Stage_Process_Preconditions return Void_Result.Result
+   with Post => Test_Pipeline_Stage_Process_Preconditions'Result.Is_Ok or
+                Test_Pipeline_Stage_Process_Preconditions'Result.Is_Err;
+
+   function Test_Pipeline_Stage_Lifecycle_Contracts return Void_Result.Result
+   with Post => Test_Pipeline_Stage_Lifecycle_Contracts'Result.Is_Ok or
+                Test_Pipeline_Stage_Lifecycle_Contracts'Result.Is_Err;
+
+   --  Generic Hasher Stage contract tests
+   function Test_Hasher_Stage_Contracts return Void_Result.Result
+   with Post => Test_Hasher_Stage_Contracts'Result.Is_Ok or
+                Test_Hasher_Stage_Contracts'Result.Is_Err;
+
+   --  Generic Pipeline Processor contract tests
+   function Test_Pipeline_Processor_Contracts return Void_Result.Result
+   with Post => Test_Pipeline_Processor_Contracts'Result.Is_Ok or
+                Test_Pipeline_Processor_Contracts'Result.Is_Err;
+
+end Test_Generic_Contracts;

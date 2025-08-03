@@ -16,7 +16,6 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
 
    use type Interfaces.C.int;
    use type Interfaces.C.size_t;
-   use type System.Address;
 
    --  Platform-specific constants
    O_RDONLY : constant Interfaces.C.int := 0;
@@ -36,8 +35,8 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
 
    --  System call imports
    function C_Open
-     (Path : Interfaces.C.char_array;
-      Flags : Interfaces.C.int) return Interfaces.C.int
+     (Path : Interfaces.C.char_array; Flags : Interfaces.C.int)
+      return Interfaces.C.int
    with Import => True, Convention => C, External_Name => "open";
 
    function C_Close (FD : Interfaces.C.int) return Interfaces.C.int
@@ -53,8 +52,8 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
    with Import => True, Convention => C, External_Name => "mmap";
 
    function C_Munmap
-     (Addr   : System.Address;
-      Length : Interfaces.C.size_t) return Interfaces.C.int
+     (Addr : System.Address; Length : Interfaces.C.size_t)
+      return Interfaces.C.int
    with Import => True, Convention => C, External_Name => "munmap";
 
    function C_Msync
@@ -76,33 +75,38 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
    with Convention => C;
 
    function C_Fstat
-     (FD : Interfaces.C.int;
-      Buf : access Stat_Buffer) return Interfaces.C.int
+     (FD : Interfaces.C.int; Buf : access Stat_Buffer) return Interfaces.C.int
    with Import => True, Convention => C, External_Name => "fstat";
 
    --  Map a file into memory
    function Map_File
-     (File : in out Memory_Mapped_File;
-      Path : File_Path;
-      Read_Only : Boolean := True) return Map_Result.Result is
+     (File      : in out Memory_Mapped_File;
+      Path      : File_Path;
+      Read_Only : Boolean := True) return Map_Result.Result
+   is
 
       Path_String : constant String := To_String (Path);
-      C_Path : constant Interfaces.C.char_array := Interfaces.C.To_C (Path_String);
-      FD : Interfaces.C.int;
-      Stat_Buf : aliased Stat_Buffer;
-      Map_Addr : System.Address;
-      File_Size : Storage_Count;
+      C_Path      : constant Interfaces.C.char_array :=
+        Interfaces.C.To_C (Path_String);
+      FD          : Interfaces.C.int;
+      Stat_Buf    : aliased Stat_Buffer;
+      Map_Addr    : System.Address;
+      File_Size   : Storage_Count;
 
    begin
       --  Check if file exists
       if not Ada.Directories.Exists (Path_String) then
-         return Map_Result.Err (To_Unbounded_String ("File does not exist: " & Path_String));
+         return
+           Map_Result.Err
+             (To_Unbounded_String ("File does not exist: " & Path_String));
       end if;
 
       --  Open file
       FD := C_Open (C_Path, (if Read_Only then O_RDONLY else O_RDWR));
       if FD = -1 then
-         return Map_Result.Err (To_Unbounded_String ("Failed to open file: " & Path_String));
+         return
+           Map_Result.Err
+             (To_Unbounded_String ("Failed to open file: " & Path_String));
       end if;
 
       --  Get file size
@@ -111,7 +115,10 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
             Close_Result : constant Interfaces.C.int := C_Close (FD);
             pragma Unreferenced (Close_Result);
          begin
-            return Map_Result.Err (To_Unbounded_String ("Failed to get file size: " & Path_String));
+            return
+              Map_Result.Err
+                (To_Unbounded_String
+                   ("Failed to get file size: " & Path_String));
          end;
       end if;
 
@@ -122,18 +129,22 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
             Close_Result : constant Interfaces.C.int := C_Close (FD);
             pragma Unreferenced (Close_Result);
          begin
-            return Map_Result.Err (To_Unbounded_String ("Cannot map empty file: " & Path_String));
+            return
+              Map_Result.Err
+                (To_Unbounded_String
+                   ("Cannot map empty file: " & Path_String));
          end;
       end if;
 
       --  Create memory mapping
-      Map_Addr := C_Mmap
-        (Addr   => System.Null_Address,
-         Length => Interfaces.C.size_t (File_Size),
-         Prot   => (if Read_Only then PROT_READ else PROT_READ + PROT_WRITE),
-         Flags  => (if Read_Only then MAP_PRIVATE else MAP_SHARED),
-         FD     => FD,
-         Offset => 0);
+      Map_Addr :=
+        C_Mmap
+          (Addr   => System.Null_Address,
+           Length => Interfaces.C.size_t (File_Size),
+           Prot   => (if Read_Only then PROT_READ else PROT_READ + PROT_WRITE),
+           Flags  => (if Read_Only then MAP_PRIVATE else MAP_SHARED),
+           FD     => FD,
+           Offset => 0);
 
       --  Close file descriptor (no longer needed after mapping)
       declare
@@ -144,7 +155,9 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
       end;
 
       if Map_Addr = MAP_FAILED then
-         return Map_Result.Err (To_Unbounded_String ("Memory mapping failed: " & Path_String));
+         return
+           Map_Result.Err
+             (To_Unbounded_String ("Memory mapping failed: " & Path_String));
       end if;
 
       --  Store mapping information
@@ -156,7 +169,8 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
 
       --  Return memory view for zero-copy access
       declare
-         View : constant Memory_View := (Address => Map_Addr, Size => File_Size);
+         View : constant Memory_View :=
+           (Address => Map_Addr, Size => File_Size);
       begin
          return Map_Result.Ok (View);
       end;
@@ -168,7 +182,8 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
       pragma Unreferenced (Result);
    begin
       if File.Map_Address /= System.Null_Address then
-         Result := C_Munmap (File.Map_Address, Interfaces.C.size_t (File.Map_Size));
+         Result :=
+           C_Munmap (File.Map_Address, Interfaces.C.size_t (File.Map_Size));
          File.Map_Address := System.Null_Address;
          File.Map_Size := 0;
          File.Handle := Null_Handle;
@@ -195,9 +210,10 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
 
    --  Create a subview of the mapped memory
    function Create_Subview
-     (File : Memory_Mapped_File;
+     (File   : Memory_Mapped_File;
       Offset : Storage_Count;
-      Length : Storage_Count) return Memory_View is
+      Length : Storage_Count) return Memory_View
+   is
 
       Subview_Address : constant System.Address := File.Map_Address + Offset;
    begin
@@ -210,21 +226,23 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
       pragma Unreferenced (Result);
    begin
       if File.Map_Address /= System.Null_Address then
-         Result := C_Msync (File.Map_Address, Interfaces.C.size_t (File.Map_Size), 0);
+         Result :=
+           C_Msync (File.Map_Address, Interfaces.C.size_t (File.Map_Size), 0);
       end if;
    end Sync;
 
    --  Advise the kernel about access patterns
    procedure Advise
-     (File : Memory_Mapped_File;
+     (File    : Memory_Mapped_File;
       Pattern : Access_Pattern;
-      Offset : Storage_Count := 0;
-      Length : Storage_Count := 0) is
+      Offset  : Storage_Count := 0;
+      Length  : Storage_Count := 0)
+   is
 
       Advice_Address : System.Address;
-      Advice_Length : Interfaces.C.size_t;
-      Advice_Flag : Interfaces.C.int;
-      Result : Interfaces.C.int;
+      Advice_Length  : Interfaces.C.size_t;
+      Advice_Flag    : Interfaces.C.int;
+      Result         : Interfaces.C.int;
       pragma Unreferenced (Result);
    begin
       if File.Map_Address = System.Null_Address then
@@ -242,10 +260,17 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
 
       --  Convert access pattern to system flag
       case Pattern is
-         when Sequential => Advice_Flag := MADV_SEQUENTIAL;
-         when Random     => Advice_Flag := MADV_RANDOM;
-         when Will_Need  => Advice_Flag := MADV_WILLNEED;
-         when Dont_Need  => Advice_Flag := MADV_DONTNEED;
+         when Sequential =>
+            Advice_Flag := MADV_SEQUENTIAL;
+
+         when Random =>
+            Advice_Flag := MADV_RANDOM;
+
+         when Will_Need =>
+            Advice_Flag := MADV_WILLNEED;
+
+         when Dont_Need =>
+            Advice_Flag := MADV_DONTNEED;
       end case;
 
       Result := C_Madvise (Advice_Address, Advice_Length, Advice_Flag);

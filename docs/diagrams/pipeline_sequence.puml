@@ -1,0 +1,98 @@
+@startuml pipelib_pipeline_sequence
+!theme plain
+title Pipeline Processing - Sequence Diagram
+
+participant "Client" as Client
+participant "Pipeline\nOrchestrator" as Orchestrator
+participant "Pipeline\nFactory" as Factory
+participant "File Reader" as Reader
+participant "Chunk" as Chunk
+participant "Stage 1\n(e.g., Hash)" as Stage1
+participant "Stage 2\n(e.g., Compress)" as Stage2
+participant "Progress\nTracker" as Progress
+participant "File Writer" as Writer
+
+== Initialization Phase ==
+Client -> Orchestrator : Create pipeline request
+Orchestrator -> Factory : Create pipeline(config)
+Factory -> Factory : Validate configuration
+Factory -> Stage1 : Create stage
+Factory -> Stage2 : Create stage
+Factory -> Progress : Create tracker(total_chunks)
+Factory --> Orchestrator : Pipeline instance
+
+== Setup Phase ==
+Orchestrator -> Reader : Open(input_file)
+Reader -> Reader : Memory map file
+Reader --> Orchestrator : Success
+
+Orchestrator -> Writer : Open(output_file)
+Writer --> Orchestrator : Success
+
+Orchestrator -> Stage1 : Initialize()
+Stage1 --> Orchestrator : Ready
+
+Orchestrator -> Stage2 : Initialize()
+Stage2 --> Orchestrator : Ready
+
+== Processing Phase ==
+loop For each chunk
+    Orchestrator -> Reader : Read_Chunk(number, size)
+    Reader -> Chunk : Create(data)
+    Reader --> Orchestrator : Chunk
+
+    Orchestrator -> Chunk : Set_State(Reading)
+    Orchestrator -> Progress : Update_Read_Count(1)
+    Orchestrator -> Chunk : Set_State(Read)
+
+    == Stage 1 Processing ==
+    Orchestrator -> Chunk : Set_State(Processing)
+    Orchestrator -> Stage1 : Process(chunk)
+    Stage1 -> Stage1 : Apply algorithm
+    Stage1 -> Chunk : Update data
+    Stage1 --> Orchestrator : Result
+    Orchestrator -> Chunk : Set_State(Processed)
+
+    == Stage 2 Processing ==
+    Orchestrator -> Chunk : Set_State(Processing)
+    Orchestrator -> Stage2 : Process(chunk)
+    Stage2 -> Stage2 : Apply algorithm
+    Stage2 -> Chunk : Update data
+    Stage2 --> Orchestrator : Result
+    Orchestrator -> Chunk : Set_State(Processed)
+    Orchestrator -> Progress : Update_Processed_Count(1)
+
+    == Writing Phase ==
+    Orchestrator -> Chunk : Set_State(Writing)
+    Orchestrator -> Writer : Write(chunk.data, offset)
+    Writer -> Writer : Write to disk
+    Writer --> Orchestrator : Success
+    Orchestrator -> Chunk : Set_State(Written)
+    Orchestrator -> Progress : Update_Written_Count(1)
+
+    Orchestrator -> Chunk : Reset()
+    note right : Chunk recycled for next iteration
+end
+
+== Cleanup Phase ==
+Orchestrator -> Progress : Mark_Writing_Complete()
+Orchestrator -> Stage1 : Cleanup()
+Orchestrator -> Stage2 : Cleanup()
+Orchestrator -> Reader : Close()
+Orchestrator -> Writer : Close()
+Orchestrator --> Client : Processing complete
+
+== Error Handling (Alternative Flow) ==
+alt Processing Error
+    Stage1 --> Orchestrator : Error result
+    Orchestrator -> Chunk : Increment_Retry_Count()
+    alt Retry limit not exceeded
+        Orchestrator -> Chunk : Set_State(Read)
+        note right : Retry processing
+    else Retry limit exceeded
+        Orchestrator -> Orchestrator : Log error
+        Orchestrator -> Orchestrator : Skip chunk
+    end
+end
+
+@enduml

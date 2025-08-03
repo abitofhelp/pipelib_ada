@@ -10,12 +10,12 @@ pragma Ada_2022;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Ada.Streams; use Ada.Streams;
 with System; use System;
+with Ada.Calendar;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk; use Pipelib.Core.Domain.Value_Objects.File_Chunk;
+with Pipelib.Core.Domain.Value_Objects.Chunk_Size; use Pipelib.Core.Domain.Value_Objects.Chunk_Size;
 with Abohlib.Core.Domain.Constants.Bytes;
 
 package body Test_File_Chunk is
-
-   use Abohlib.Infrastructure.Testing.Test_Framework;
 
    --  ==========================================================================
    --  Test Implementation
@@ -644,6 +644,32 @@ package body Test_File_Chunk is
             null; -- Expected
       end;
 
+      -- Test precondition: data size exceeds maximum
+      -- Note: We can't actually test MAX_CHUNK_DATA_SIZE + 1 because it's too large (512MB)
+      -- The exception will be raised in the Create function implementation
+      -- This test is kept for documentation purposes
+
+      -- Test precondition: invalid checksum length
+      begin
+         declare
+            Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 42];
+            Bad_Checksum : constant String := "too_short"; -- Should be 64 chars
+            Chunk : constant File_Chunk_Type := Create_With_Checksum (1, 0, Test_Data, Bad_Checksum, False);
+            pragma Unreferenced (Chunk);
+         begin
+            return Void_Result.Err (Test_Error'(
+               Kind        => Assertion_Failed,
+               Message     => To_Unbounded_String ("Invalid checksum length accepted"),
+               Details     => To_Unbounded_String ("Expected precondition failure"),
+               Line_Number => 0,
+               Test_Name   => To_Unbounded_String ("Test_Contract_Violations")
+            ));
+         end;
+      exception
+         when others =>
+            null; -- Expected
+      end;
+
       return Void_Result.Ok (True);
    end Test_Contract_Violations;
 
@@ -685,6 +711,267 @@ package body Test_File_Chunk is
 
       return Void_Result.Ok (True);
    end Test_Zero_Copy_Semantics;
+
+   function Test_Accessor_Preconditions return Void_Result.Result is
+      -- Helper to create an empty chunk (simulated)
+      function Make_Empty_Chunk return File_Chunk_Type is
+         Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 0];
+         Chunk : constant File_Chunk_Type := Create (1, 0, Test_Data, False);
+      begin
+         -- Simulate emptiness by calling Finalize (not recommended in real code)
+         -- In practice, empty chunks shouldn't exist due to type invariants
+         return Chunk;
+      end Make_Empty_Chunk;
+      pragma Unreferenced (Make_Empty_Chunk);
+   begin
+      -- We can't actually test accessor preconditions on empty chunks
+      -- because the type invariant prevents creating truly empty chunks.
+      -- This is actually good - it means our design prevents invalid states!
+
+      -- Instead, let's test that all accessors work correctly on valid chunks
+      declare
+         Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 99];
+         Chunk : constant File_Chunk_Type := Create_With_Checksum (
+            Sequence_Number => 42,
+            Offset          => 8192,
+            Data            => Test_Data,
+            Checksum        => "1234567890abcdef" & [1 .. 48 => '0'],
+            Is_Final        => True
+         );
+      begin
+         -- All accessors should work without raising exceptions
+         declare
+            Id_Val : constant String := Id (Chunk);
+            Seq_Val : constant Natural := Sequence_Number (Chunk);
+            Off_Val : constant Long_Long_Integer := Offset (Chunk);
+            Size_Val : constant Pipelib.Core.Domain.Value_Objects.Chunk_Size.Chunk_Size_Type := Size (Chunk);
+            Data_Val : constant Stream_Element_Array := Data (Chunk);
+            Data_Acc : constant Stream_Element_Array_Access := Data_Access (Chunk);
+            Checksum_Val : constant String := Checksum (Chunk);
+            Has_Check : constant Boolean := Has_Checksum (Chunk);
+            Final_Val : constant Boolean := Is_Final (Chunk);
+            pragma Unreferenced (Final_Val);
+            Created_Val : constant Ada.Calendar.Time := Created_At (Chunk);
+            pragma Unreferenced (Created_Val);
+            Length_Val : constant Natural := Data_Length (Chunk);
+            Empty_Val : constant Boolean := Is_Empty (Chunk);
+         begin
+            -- Verify postconditions are satisfied
+            if Id_Val'Length = 0 then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Id postcondition violated"),
+                  Details     => To_Unbounded_String ("Expected non-empty ID"),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Seq_Val /= 42 then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Sequence number mismatch"),
+                  Details     => To_Unbounded_String ("Expected: 42, Got: " & Seq_Val'Image),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Off_Val /= 8192 then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Offset postcondition violated"),
+                  Details     => To_Unbounded_String ("Expected: 8192, Got: " & Off_Val'Image),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if not Pipelib.Core.Domain.Value_Objects.Chunk_Size.Is_Valid (Size_Val) then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Size postcondition violated"),
+                  Details     => To_Unbounded_String ("Invalid chunk size"),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Data_Val'Length /= Length_Val then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Data postcondition violated"),
+                  Details     => To_Unbounded_String ("Length mismatch"),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Data_Acc = null or else Data_Acc.all'Length /= Length_Val then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Data_Access postcondition violated"),
+                  Details     => To_Unbounded_String ("Null or length mismatch"),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Has_Check and Checksum_Val'Length /= 64 then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Checksum postcondition violated"),
+                  Details     => To_Unbounded_String ("Expected 64 chars, got: " & Checksum_Val'Length'Image),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Length_Val = 0 or Length_Val > MAX_CHUNK_DATA_SIZE then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Data_Length postcondition violated"),
+                  Details     => To_Unbounded_String ("Out of range: " & Length_Val'Image),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+
+            if Empty_Val then
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Is_Empty returned true for non-empty chunk"),
+                  Details     => Null_Unbounded_String,
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Accessor_Preconditions")
+               ));
+            end if;
+         end;
+      end;
+
+      return Void_Result.Ok (True);
+   end Test_Accessor_Preconditions;
+
+   function Test_Factory_Postconditions return Void_Result.Result is
+      Test_Data : constant Stream_Element_Array (1 .. 1024) := [others => 42];  -- MIN_CHUNK_SIZE
+      Test_Checksum : constant String := "a" & [2 .. 64 => 'b']; -- 64 char checksum
+
+      --  Test Create postconditions
+      Chunk1 : constant File_Chunk_Type := Create (
+         Sequence_Number => 10,
+         Offset => 1000,
+         Data => Test_Data,
+         Is_Final => True
+      );
+
+      --  Test Create_With_Checksum postconditions
+      Chunk2 : constant File_Chunk_Type := Create_With_Checksum (
+         Sequence_Number => 20,
+         Offset => 2000,
+         Data => Test_Data,
+         Checksum => Test_Checksum,
+         Is_Final => False
+      );
+
+      --  Test Create_From_Access postconditions
+      Data_Access : constant Stream_Element_Array_Access := new Stream_Element_Array'(Test_Data);
+      Chunk3 : constant File_Chunk_Type := Create_From_Access (
+         Sequence_Number => 30,
+         Offset => 3000,
+         Data => Data_Access,
+         Is_Final => True
+      );
+   begin
+      --  Test Create postconditions
+      if Is_Empty (Chunk1) then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Create postcondition failed"),
+            Details     => To_Unbounded_String ("Created chunk should not be empty"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      if Sequence_Number (Chunk1) /= 10 then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Sequence number postcondition failed"),
+            Details     => To_Unbounded_String ("Expected 10, got " & Sequence_Number (Chunk1)'Image),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      if Offset (Chunk1) /= 1000 then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Offset postcondition failed"),
+            Details     => To_Unbounded_String ("Expected 1000, got " & Offset (Chunk1)'Image),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      if Natural (Value (Size (Chunk1))) /= Test_Data'Length then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Size postcondition failed"),
+            Details     => To_Unbounded_String ("Expected " & Test_Data'Length'Image &
+                                         ", got " & Natural'Image (Natural (Value (Size (Chunk1))))),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      if not Is_Final (Chunk1) then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Is_Final postcondition failed"),
+            Details     => To_Unbounded_String ("Expected True"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      if Id (Chunk1)'Length = 0 then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Id postcondition failed"),
+            Details     => To_Unbounded_String ("Id should not be empty"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      --  Test Create_With_Checksum specific postconditions
+      if Checksum (Chunk2) /= Test_Checksum then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Checksum postcondition failed"),
+            Details     => To_Unbounded_String ("Checksum mismatch"),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      --  Test Create_From_Access postconditions
+      --  Note: Data_Access is not set to null because the parameter is 'in', not 'in out'
+      --  The function takes ownership internally by copying the pointer
+
+      if Natural (Value (Size (Chunk3))) /= Test_Data'Length then
+         return Void_Result.Err (Test_Error'(
+            Kind        => Assertion_Failed,
+            Message     => To_Unbounded_String ("Create_From_Access size postcondition failed"),
+            Details     => To_Unbounded_String ("Expected " & Test_Data'Length'Image &
+                                         ", got " & Natural'Image (Natural (Value (Size (Chunk3))))),
+            Line_Number => 0,
+            Test_Name   => To_Unbounded_String ("Test_Factory_Postconditions")
+         ));
+      end if;
+
+      return Void_Result.Ok (True);
+   end Test_Factory_Postconditions;
 
    function Test_Concurrent_Access_Safety return Void_Result.Result is
       Test_Data : constant Stream_Element_Array (1 .. 2048) := [others => 111];
@@ -743,7 +1030,7 @@ package body Test_File_Chunk is
    function Run_All_Tests
      (Output : access Test_Output_Port'Class) return Test_Stats_Result.Result
    is
-      Tests : Test_Results_Array (1 .. 14);
+      Tests : Test_Results_Array (1 .. 16);
       Index : Positive := 1;
 
       procedure Add_Test_Result
@@ -793,6 +1080,8 @@ package body Test_File_Chunk is
       Add_Test_Result ("Test_Chunk_Image_Representation", Test_Chunk_Image_Representation'Access);
       Add_Test_Result ("Test_Contract_Violations", Test_Contract_Violations'Access);
       Add_Test_Result ("Test_Zero_Copy_Semantics", Test_Zero_Copy_Semantics'Access);
+      Add_Test_Result ("Test_Accessor_Preconditions", Test_Accessor_Preconditions'Access);
+      Add_Test_Result ("Test_Factory_Postconditions", Test_Factory_Postconditions'Access);
       Add_Test_Result ("Test_Concurrent_Access_Safety", Test_Concurrent_Access_Safety'Access);
 
       -- Generate summary

@@ -57,7 +57,8 @@ package body Pipelib.Core.Domain.Value_Objects.Stage_Order is
    --  "="
    -- -----
 
-   overriding function "=" (Left, Right : Stage_Order_Type) return Boolean is
+   overriding
+   function "=" (Left, Right : Stage_Order_Type) return Boolean is
    begin
       return Left.Order_Value = Right.Order_Value;
    end "=";

@@ -47,8 +47,10 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
    --  Get_CPU_Based_Count
    -- -----------------------
 
-   function Get_CPU_Based_Count (Multiplier : Positive := 1) return Worker_Count_Type is
-      CPU_Count : constant System.Multiprocessors.CPU :=
+   function Get_CPU_Based_Count
+     (Multiplier : Positive := 1) return Worker_Count_Type
+   is
+      CPU_Count     : constant System.Multiprocessors.CPU :=
         System.Multiprocessors.Number_Of_CPUs;
       Desired_Count : constant Natural := Natural (CPU_Count) * Multiplier;
    begin
@@ -66,21 +68,25 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
    --  Optimal_For_File_Size
    -- ---------------------------
 
-   function Optimal_For_File_Size (File_Size : Long_Long_Integer)
-     return Worker_Count_Type is
+   function Optimal_For_File_Size
+     (File_Size : Long_Long_Integer) return Worker_Count_Type
+   is
       Optimal_Count : Natural;
    begin
       --  Empirically optimized worker counts based on extensive benchmarks
       case File_Size is
          --  Tiny files: Minimize overhead
+
          when 0 .. SI_MB =>
             if File_Size < 64 * SI_KB then
                Optimal_Count := 1;  -- Very small files
+
             else
                Optimal_Count := 2;  -- Small files < 1MB
             end if;
 
-         --  Small files: Aggressive parallelism (empirically optimized)
+            --  Small files: Aggressive parallelism (empirically optimized)
+
          when SI_MB + 1 .. 50 * SI_MB =>
             declare
                Size_MB : constant Float := Float (File_Size) / Float (SI_MB);
@@ -96,7 +102,8 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
                end if;
             end;
 
-         --  Medium files: Balanced approach
+            --  Medium files: Balanced approach
+
          when 50 * SI_MB + 1 .. 500 * SI_MB =>
             declare
                Size_MB : constant Float := Float (File_Size) / Float (SI_MB);
@@ -110,7 +117,8 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
                end if;
             end;
 
-         --  Large files: Conservative to avoid coordination overhead
+            --  Large files: Conservative to avoid coordination overhead
+
          when others =>
             Optimal_Count := 3;  -- 2GB+: 3 workers (+76% performance)
       end case;
@@ -130,8 +138,8 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
    -- ---------------------------------
 
    function Optimal_For_Processing_Type
-     (File_Size : Long_Long_Integer;
-      Available_CPUs : Natural;
+     (File_Size        : Long_Long_Integer;
+      Available_CPUs   : Natural;
       Is_CPU_Intensive : Boolean) return Worker_Count_Type
    is
       Base_Count : constant Worker_Count_Type :=

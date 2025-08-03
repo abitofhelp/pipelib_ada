@@ -1,0 +1,237 @@
+@startuml pipelib_domain_model
+!theme plain
+title Pipelib Domain Model - Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor<<entity>> LightBlue
+  BackgroundColor<<valueobject>> LightGreen
+  BackgroundColor<<service>> LightYellow
+  BackgroundColor<<interface>> LightPink
+  BackgroundColor<<aggregate>> LightCyan
+}
+
+' Entities
+class "Chunk" <<entity>> {
+  -number: Natural
+  -state: Chunk_State
+  -data: Stream_Element_Array_Access
+  -data_size: Natural
+  -allocated_size: Chunk_Size_Type
+  -is_compressed: Boolean
+  -original_size: Natural
+  -retry_count: Natural
+  --
+  +Create(number: Natural, size: Chunk_Size_Type): Chunk_Type
+  +Number(): Natural
+  +State(): Chunk_State
+  +Set_State(state: Chunk_State)
+  +Data(): Stream_Element_Array_Access
+  +Set_Data(data: in out Stream_Element_Array_Access)
+  +Data_Size(): Natural
+  +Set_Data_Size(size: Natural)
+  +Is_Compressed(): Boolean
+  +Set_Compressed(compressed: Boolean)
+  +Original_Size(): Natural
+  +Set_Original_Size(size: Natural)
+  +Retry_Count(): Natural
+  +Increment_Retry_Count()
+  +Is_Valid(): Boolean
+  +Reset()
+}
+
+enum "Chunk_State" {
+  Created
+  Reading
+  Read
+  Processing
+  Processed
+  Writing
+  Written
+}
+
+' Value Objects
+class "File_Chunk" <<valueobject>> {
+  -id: String
+  -sequence_number: Natural
+  -offset: Long_Long_Integer
+  -size: Chunk_Size_Type
+  -data: Stream_Element_Array_Access
+  -checksum: String
+  -is_final: Boolean
+  -created_at: Time
+  --
+  +Create(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array, is_final: Boolean): File_Chunk_Type
+  +Create_From_Access(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array_Access, is_final: Boolean): File_Chunk_Type
+  +Create_With_Checksum(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array, checksum: String, is_final: Boolean): File_Chunk_Type
+  +Id(): String
+  +Sequence_Number(): Natural
+  +Offset(): Long_Long_Integer
+  +Size(): Chunk_Size_Type
+  +Data(): Stream_Element_Array
+  +Data_Access(): Stream_Element_Array_Access
+  +Checksum(): String
+  +Has_Checksum(): Boolean
+  +Is_Final(): Boolean
+  +Created_At(): Time
+  +Data_Length(): Natural
+  +Calculate_And_Set_Checksum(): File_Chunk_Type
+  +Verify_Checksum(): Result
+  +Image(): String
+}
+
+class "Chunk_Size" <<valueobject>> {
+  -bytes: Long_Long_Integer
+  --
+  +Create(bytes: Long_Long_Integer): Chunk_Size_Type
+  +Value(size: Chunk_Size_Type): Long_Long_Integer
+  +Is_Valid(size: Chunk_Size_Type): Boolean
+  +Default(): Chunk_Size_Type
+  +Min(): Chunk_Size_Type
+  +Max(): Chunk_Size_Type
+  +From_KB(kb: Natural): Chunk_Size_Type
+  +From_MB(mb: Natural): Chunk_Size_Type
+  +Small(): Chunk_Size_Type
+  +Medium(): Chunk_Size_Type
+  +Large(): Chunk_Size_Type
+  +Adaptive_For_Size(total_size: Long_Long_Integer): Chunk_Size_Type
+}
+
+class "Algorithm" <<valueobject>> {
+  -name: String
+  --
+  +Create(name: String): Algorithm_Type
+  +Name(alg: Algorithm_Type): String
+  +SHA256(): Algorithm_Type
+  +MD5(): Algorithm_Type
+  +Blake2b(): Algorithm_Type
+  +Identity(): Algorithm_Type
+  +Uppercase(): Algorithm_Type
+  +Lowercase(): Algorithm_Type
+  +Reverse(): Algorithm_Type
+  +Base64_Encode(): Algorithm_Type
+  +Base64_Decode(): Algorithm_Type
+}
+
+class "Stage_Order" <<valueobject>> {
+  -order: Positive
+  --
+  +Create(order: Positive): Stage_Order_Type
+  +Value(order: Stage_Order_Type): Positive
+  +"<"(left, right: Stage_Order_Type): Boolean
+  +"="(left, right: Stage_Order_Type): Boolean
+}
+
+' Domain Services
+class "Progress_Tracker" <<service>> {
+  -total_count: Long_Long_Integer
+  -read_count: Long_Long_Integer
+  -processed_count: Long_Long_Integer
+  -written_count: Long_Long_Integer
+  -read_complete: Boolean
+  -processing_complete: Boolean
+  -writing_complete: Boolean
+  --
+  +Create(total_items: Long_Long_Integer): Progress_Tracker_Type
+  +Update_Read_Count(increment: Long_Long_Integer)
+  +Update_Processed_Count(increment: Long_Long_Integer)
+  +Update_Written_Count(increment: Long_Long_Integer)
+  +Mark_Read_Complete()
+  +Mark_Processing_Complete()
+  +Mark_Writing_Complete()
+  +Get_Progress(): Progress_Info
+  +Total_Items(): Long_Long_Integer
+  +Read_Items(): Long_Long_Integer
+  +Processed_Items(): Long_Long_Integer
+  +Written_Items(): Long_Long_Integer
+  +Is_Read_Complete(): Boolean
+  +Is_Processing_Complete(): Boolean
+  +Is_Writing_Complete(): Boolean
+  +Read_Percentage(): Float
+  +Processing_Percentage(): Float
+  +Writing_Percentage(): Float
+}
+
+' Interfaces
+interface "Stage_Interface" <<interface>> {
+  +Process(input: Input_Type): Result
+  +Initialize(): Result
+  +Cleanup(): Result
+  +Name(): String
+  +Is_Ready(): Boolean
+  +Items_Processed(): Natural
+  +Bytes_Processed(): Long_Long_Integer
+  +Can_Process_In_Parallel(): Boolean
+  +Estimated_Throughput_MB_Per_Sec(): Float
+}
+
+interface "File_Reader_Interface" <<interface>> {
+  +Open(path: String): Result
+  +Read_Chunk(offset: Long_Long_Integer, size: Natural): Result
+  +Get_Size(): Result
+  +Close(): Result
+  +Is_Open(): Boolean
+}
+
+interface "File_Writer_Interface" <<interface>> {
+  +Open(path: String): Result
+  +Write(data: Stream_Element_Array, offset: Long_Long_Integer): Result
+  +Close(): Result
+  +Is_Open(): Boolean
+}
+
+interface "Chunk_Adapter_Interface" <<interface>> {
+  +Read_Chunk(chunk_number: Natural, chunk_size: Chunk_Size_Type): Result
+  +Total_Chunks(): Natural
+  +File_Size(): Long_Long_Integer
+}
+
+' Generic Stage Implementation
+class "Generic_Pipeline_Stage" <<service>> {
+  -algorithm: Algorithm_Type
+  -stage_name: String
+  -items_count: Natural
+  -bytes_count: Long_Long_Integer
+  -ready: Boolean
+  --
+  +Create(algorithm: Algorithm_Type, stage_name: String): Stage_Type
+  +Process(input: Chunk_Type): Result
+  +Initialize(): Result
+  +Cleanup(): Result
+  +Name(): String
+  +Is_Ready(): Boolean
+  +Items_Processed(): Natural
+  +Bytes_Processed(): Long_Long_Integer
+}
+
+' Relationships
+Chunk "1" *-- "1" File_Chunk : contains
+Chunk "1" -- "1" Chunk_Size : uses
+Chunk "1" -- "1" Chunk_State : has state
+
+File_Chunk "1" -- "1" Chunk_Size : has size
+
+Generic_Pipeline_Stage "1" -- "1" Algorithm : uses
+Generic_Pipeline_Stage ..|> Stage_Interface : implements
+
+Progress_Tracker "1" -- "*" Chunk : tracks progress of
+
+' Notes
+note right of Chunk
+  **Entity**: Has identity (number)
+  and mutable state. Represents a
+  unit of work in the pipeline.
+end note
+
+note right of File_Chunk
+  **Value Object**: Immutable data
+  representation. No identity beyond
+  its values.
+end note
+
+note bottom of Stage_Interface
+  **Port**: Domain interface that
+  infrastructure implements
+end note
+
+@enduml

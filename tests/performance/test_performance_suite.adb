@@ -22,9 +22,11 @@ package body Test_Performance_Suite is
    --  Performance constants
    PERFORMANCE_ITERATIONS : constant := 10_000;
    STRESS_ITERATIONS : constant := 100_000;
+   pragma Unreferenced (STRESS_ITERATIONS);
    LARGE_FILE_SIZE : constant := 1 * Natural (Abohlib.Core.Domain.Constants.Bytes.SI_GB);  -- 1 GB
    CHUNK_SIZE_PERF : constant := 64 * Natural (Abohlib.Core.Domain.Constants.Bytes.SI_KB);
    CONCURRENT_TASKS : constant := 8;
+   pragma Unreferenced (CONCURRENT_TASKS);
 
    --  Helper function to measure execution time
    function Measure_Time (Operation : access procedure) return Duration is
@@ -171,7 +173,9 @@ package body Test_Performance_Suite is
                 Natural (Simulated_Throughput)'Image & " MB/s");
 
       -- Performance threshold: Memory mapped I/O should be > 200 MB/s
+      pragma Warnings (Off, "condition is always False");
       if Simulated_Throughput < 200.0 then
+      pragma Warnings (On, "condition is always False");
          return Void_Result.Err (Test_Error'(
             Kind        => Assertion_Failed,
             Message     => To_Unbounded_String ("Memory mapped I/O too slow"),

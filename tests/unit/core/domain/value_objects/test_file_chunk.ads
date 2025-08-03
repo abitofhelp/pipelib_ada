@@ -27,6 +27,8 @@ package Test_File_Chunk is
    function Test_Chunk_Image_Representation return Void_Result.Result;
    function Test_Contract_Violations return Void_Result.Result;
    function Test_Zero_Copy_Semantics return Void_Result.Result;
+   function Test_Accessor_Preconditions return Void_Result.Result;
+   function Test_Factory_Postconditions return Void_Result.Result;
    function Test_Concurrent_Access_Safety return Void_Result.Result;
 
    --  Test Runner

@@ -57,12 +57,19 @@
 - Use type constraints for validation
 - Implement unit, integration, and e2e tests (90% coverage target)
 - Use mocking where appropriate
+- **Contract Validation**: Create contract validation tests for all new contracts
+  - Test precondition enforcement (invalid inputs rejected)
+  - Test postcondition satisfaction (guarantees met)
+  - Test state transition validity (valid/invalid transitions)
+  - Test type invariant maintenance (throughout lifecycle)
+  - Use abohlib testing framework with Result pattern
+  - Document contracts that require mocking infrastructure
 
 ### 7. Build and Project Management
 - Always create a Makefile with required and best practice commands
 - Group Makefile help by function area in ascending order
 - Order commands within groups alphabetically
-- Use `tests.gpr` not `<project>_tests.gpr` for test project files
+- Use `tests.gpr` not `<project>_tests.gpr` for test project files (apply to new projects; existing projects can migrate when convenient)
 
 ### 8. Performance Optimization
 - Prefer compile-time checks over runtime

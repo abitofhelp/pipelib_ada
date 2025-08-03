@@ -27,12 +27,11 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- -----------
 
    function Create
-     (Path : Abohlib.Core.Domain.Value_Objects.File_Path.File_Path;
+     (Path          : Abohlib.Core.Domain.Value_Objects.File_Path.File_Path;
       Expected_Size : Long_Long_Integer := 0;
-      Use_Temp_File : Boolean := True)
-      return Random_Write_File_Access
+      Use_Temp_File : Boolean := True) return Random_Write_File_Access
    is
-      File : constant Random_Write_File_Access := new Random_Write_File;
+      File      : constant Random_Write_File_Access := new Random_Write_File;
       Temp_Name : Unbounded_String;
    begin
       File.File_Path := Path;
@@ -72,18 +71,20 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Write_Chunk_At_Position
    -- -----------------------------
 
+   overriding
    procedure Write_Chunk_At_Position
-     (File : in out Random_Write_File;
-      Chunk : File_Chunk_Type;
+     (Writer   : in out Random_Write_File;
+      Chunk    : File_Chunk_Type;
       Position : Long_Long_Integer)
    is
+      File : Random_Write_File renames Writer;
    begin
       --  Seek to the specified position
       Set_Index (File.File_Handle, Positive_Count (Position + 1));
 
       --  Write chunk data
       declare
-         S : constant Stream_Access := Stream (File.File_Handle);
+         S          : constant Stream_Access := Stream (File.File_Handle);
          Chunk_Data : constant Stream_Element_Array := Data (Chunk);
       begin
          Stream_Element_Array'Write (S, Chunk_Data);
@@ -100,20 +101,24 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- ---------------------
 
    procedure Write_Chunk_At
-     (File : in out Random_Write_File;
-      Chunk : File_Chunk_Type;
+     (Writer   : in out Random_Write_File;
+      Chunk    : File_Chunk_Type;
       Position : Long_Long_Integer;
-      Result : in out Write_Result.Result)
+      Result   : in out Write_Result.Result)
    is
       use Write_Result;
+      File : Random_Write_File renames Writer;
    begin
       begin
          Write_Chunk_At_Position (File, Chunk, Position);
          Result := Ok (True);
       exception
          when E : others =>
-            Result := Err (To_Unbounded_String ("Failed to write chunk: " &
-                                               Ada.Exceptions.Exception_Message (E)));
+            Result :=
+              Err
+                (To_Unbounded_String
+                   ("Failed to write chunk: "
+                    & Ada.Exceptions.Exception_Message (E)));
       end;
    end Write_Chunk_At;
 
@@ -121,13 +126,14 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Write_Chunk
    -- -----------------
 
+   overriding
    procedure Write_Chunk
-     (File : in out Random_Write_File;
-      Chunk : File_Chunk_Type)
+     (Writer : in out Random_Write_File; Chunk : File_Chunk_Type)
    is
+      File     : Random_Write_File renames Writer;
       Position : constant Long_Long_Integer :=
-        Long_Long_Integer (Sequence_Number (Chunk)) *
-        Long_Long_Integer (Data_Length (Chunk));
+        Long_Long_Integer (Sequence_Number (Chunk))
+        * Long_Long_Integer (Data_Length (Chunk));
    begin
       Write_Chunk_At_Position (File, Chunk, Position);
    end Write_Chunk;
@@ -136,7 +142,9 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Is_Open
    -- ------------
 
-   function Is_Open (File : Random_Write_File) return Boolean is
+   overriding
+   function Is_Open (Writer : Random_Write_File) return Boolean is
+      File : Random_Write_File renames Writer;
    begin
       return File.Is_Open_Flag and then Is_Open (File.File_Handle);
    end Is_Open;
@@ -154,8 +162,19 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Commit
    -- ----------
 
-   function Commit (File : in out Random_Write_File) return Write_Result.Result is
-      use Write_Result;
+   overriding
+   function Commit
+     (Writer : in out Random_Write_File)
+      return Pipelib
+               .Core
+               .Domain
+               .Ports
+               .File_Writer_Interface
+               .Write_Result
+               .Result
+   is
+      File : Random_Write_File renames Writer;
+      use Pipelib.Core.Domain.Ports.File_Writer_Interface.Write_Result;
    begin
       if not File.Is_Open_Flag then
          return Err (To_Unbounded_String ("File is not open"));
@@ -182,9 +201,11 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
                New_Name => To_String (File.File_Path));
          exception
             when E : others =>
-               return Err (To_Unbounded_String
-                 ("Failed to rename temp file: " &
-                  Ada.Exceptions.Exception_Message (E)));
+               return
+                 Err
+                   (To_Unbounded_String
+                      ("Failed to rename temp file: "
+                       & Ada.Exceptions.Exception_Message (E)));
          end;
       end if;
 
@@ -203,8 +224,8 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
       end if;
 
       --  Delete temp file if it exists
-      if File.Use_Temp and then
-         Ada.Directories.Exists (To_String (File.Temp_Path))
+      if File.Use_Temp
+        and then Ada.Directories.Exists (To_String (File.Temp_Path))
       then
          Ada.Directories.Delete_File (To_String (File.Temp_Path));
       end if;
@@ -214,7 +235,9 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Close
    -- ---------
 
-   procedure Close (File : in out Random_Write_File) is
+   overriding
+   procedure Close (Writer : in out Random_Write_File) is
+      File : Random_Write_File renames Writer;
    begin
       if File.Is_Open_Flag then
          if Is_Open (File.File_Handle) then
@@ -256,9 +279,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- ---------------
 
    procedure Preallocate
-     (File : in out Random_Write_File;
-      Size : Long_Long_Integer)
-   is
+     (File : in out Random_Write_File; Size : Long_Long_Integer) is
    begin
       --  Platform-specific implementation
       --  On systems without fallocate, we just seek to the end and write a byte
@@ -282,8 +303,10 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    -- -----------
 
    procedure Destroy (File : in out Random_Write_File_Access) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Random_Write_File, Random_Write_File_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation
+          (Random_Write_File,
+           Random_Write_File_Access);
    begin
       if File /= null then
          File.Close;
@@ -300,7 +323,8 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    --  Finalize
    -- ------------
 
-   overriding procedure Finalize (File : in out Random_Write_File) is
+   overriding
+   procedure Finalize (File : in out Random_Write_File) is
    begin
       Rollback (File);  -- Clean up on finalization
    end Finalize;
@@ -336,8 +360,7 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
       -- ----------------------
 
       procedure Write_At_Position
-        (Chunk : File_Chunk_Type;
-         Position : Long_Long_Integer) is
+        (Chunk : File_Chunk_Type; Position : Long_Long_Integer) is
       begin
          if File_Access /= null then
             File_Access.Write_Chunk_At_Position (Chunk, Position);

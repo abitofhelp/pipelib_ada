@@ -27,46 +27,55 @@ package Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface is
    end record;
 
    --  Result type for memory mapping operations
-   package Map_Result is new Abohlib.Core.Domain.Result.Result_Package
-     (Ok_Type  => Memory_View,
-      Err_Type => Unbounded_String);
+   package Map_Result is new
+     Abohlib.Core.Domain.Result.Result_Package
+       (Ok_Type  => Memory_View,
+        Err_Type => Unbounded_String);
 
    --  Interface for memory-mapped file operations
    type Memory_Mapped_File_Interface is limited interface;
-   type Memory_Mapped_File_Interface_Access is access all Memory_Mapped_File_Interface'Class;
+   type Memory_Mapped_File_Interface_Access is
+     access all Memory_Mapped_File_Interface'Class;
 
    --  Map a file into memory
    function Map_File
      (Self      : in out Memory_Mapped_File_Interface;
       Path      : File_Path;
-      Read_Only : Boolean := True) return Map_Result.Result is abstract;
+      Read_Only : Boolean := True) return Map_Result.Result
+   is abstract;
 
    --  Unmap the file from memory
    procedure Unmap (Self : in out Memory_Mapped_File_Interface) is abstract;
 
    --  Check if file is currently mapped
-   function Is_Mapped (Self : Memory_Mapped_File_Interface) return Boolean is abstract;
+   function Is_Mapped (Self : Memory_Mapped_File_Interface) return Boolean
+   is abstract;
 
    --  Get the current memory view
-   function Get_View (Self : Memory_Mapped_File_Interface) return Memory_View is abstract
-     with Pre'Class => Self.Is_Mapped;
+   function Get_View (Self : Memory_Mapped_File_Interface) return Memory_View
+   is abstract
+   with Pre'Class => Self.Is_Mapped;
 
    --  Get file size
-   function Get_Size (Self : Memory_Mapped_File_Interface) return Storage_Count is abstract
-     with Pre'Class => Self.Is_Mapped;
+   function Get_Size (Self : Memory_Mapped_File_Interface) return Storage_Count
+   is abstract
+   with Pre'Class => Self.Is_Mapped;
 
    --  Create a subview of the mapped memory
    function Create_Subview
      (Self   : Memory_Mapped_File_Interface;
       Offset : Storage_Count;
-      Length : Storage_Count) return Memory_View is abstract
-     with Pre'Class => Self.Is_Mapped and then
-                       Offset < Self.Get_Size and then
-                       Offset + Length <= Self.Get_Size;
+      Length : Storage_Count) return Memory_View
+   is abstract
+   with
+     Pre'Class =>
+       Self.Is_Mapped
+       and then Offset < Self.Get_Size
+       and then Offset + Length <= Self.Get_Size;
 
    --  Sync changes to disk (for writable mappings)
    procedure Sync (Self : in out Memory_Mapped_File_Interface) is abstract
-     with Pre'Class => Self.Is_Mapped;
+   with Pre'Class => Self.Is_Mapped;
 
    --  Access pattern hints
    type Access_Pattern is (Sequential, Random, Will_Need, Dont_Need);
@@ -76,7 +85,8 @@ package Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface is
      (Self    : Memory_Mapped_File_Interface;
       Pattern : Access_Pattern;
       Offset  : Storage_Count := 0;
-      Length  : Storage_Count := 0) is abstract
-     with Pre'Class => Self.Is_Mapped;
+      Length  : Storage_Count := 0)
+   is abstract
+   with Pre'Class => Self.Is_Mapped;
 
 end Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface;

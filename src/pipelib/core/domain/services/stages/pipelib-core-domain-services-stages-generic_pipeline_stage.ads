@@ -22,10 +22,10 @@ generic
    Stage_Name : String := "Generic Stage";
 
    --  Processing function provided by instantiation
-   with function Process_Element (
-      State  : in out State_Type;
-      Config : Config_Type;
-      Input  : Input_Type) return Output_Type;
+   with
+     function Process_Element
+       (State : in out State_Type; Config : Config_Type; Input : Input_Type)
+        return Output_Type;
 
    --  State initialization
    with function Initialize_State (Config : Config_Type) return State_Type;
@@ -35,65 +35,78 @@ generic
    with function Is_Valid_Output (Output : Output_Type) return Boolean is <>;
    with function Is_Valid_State (State : State_Type) return Boolean is <>;
 
-package Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
+package Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage
+is
    pragma Elaborate_Body;
 
    --  Result types for stage operations
-   package Output_Result is new Abohlib.Core.Domain.Result.Result_Package
-      (Ok_Type => Output_Type,
-       Err_Type => Unbounded_String);
+   package Output_Result is new
+     Abohlib.Core.Domain.Result.Result_Package
+       (Ok_Type  => Output_Type,
+        Err_Type => Unbounded_String);
 
-   package Status_Result is new Abohlib.Core.Domain.Result.Result_Package
-      (Ok_Type => Boolean,
-       Err_Type => Unbounded_String);
+   package Status_Result is new
+     Abohlib.Core.Domain.Result.Result_Package
+       (Ok_Type  => Boolean,
+        Err_Type => Unbounded_String);
 
    --  Generic pipeline stage type
    type Pipeline_Stage is tagged private;
 
    --  Constructor with contracts
    function Create (Config : Config_Type) return Pipeline_Stage
-   with Post => Create'Result.Is_Initialized and then
-                Create'Result.Name = Stage_Name and then
-                Create'Result.Items_Processed = 0;
+   with
+     Post =>
+       Create'Result.Is_Initialized
+       and then Create'Result.Name = Stage_Name
+       and then Create'Result.Items_Processed = 0;
 
    --  Process a single item with comprehensive contracts
-   function Process (
-      Stage : in out Pipeline_Stage;
-      Input : Input_Type) return Output_Result.Result
-   with Pre => Stage.Is_Initialized and then
-               Is_Valid_Input (Input) and then
-               Is_Valid_State (Stage.Get_State),
-        Post => (if Output_Result.Is_Ok (Process'Result) then
-                   Is_Valid_Output (Output_Result.Get_Ok (Process'Result)) and then
-                   Stage.Items_Processed = Stage'Old.Items_Processed + 1
-                 else
-                   Stage.Items_Processed = Stage'Old.Items_Processed);
+   function Process
+     (Stage : in out Pipeline_Stage; Input : Input_Type)
+      return Output_Result.Result
+   with
+     Pre =>
+       Stage.Is_Initialized
+       and then Is_Valid_Input (Input)
+       and then Is_Valid_State (Stage.Get_State),
+     Post =>
+       (if Output_Result.Is_Ok (Process'Result)
+        then
+          Is_Valid_Output (Output_Result.Get_Ok (Process'Result))
+          and then Stage.Items_Processed = Stage'Old.Items_Processed + 1
+        else Stage.Items_Processed = Stage'Old.Items_Processed);
 
    --  Batch processing using Ada 2022 features
    type Input_Array is array (Positive range <>) of Input_Type;
    type Output_Array is array (Positive range <>) of Output_Type;
 
-   function Process_Batch (
-      Stage : in out Pipeline_Stage;
-      Inputs : Input_Array) return Output_Array
-   with Pre => Stage.Is_Initialized and then
-               Inputs'Length > 0 and then
-               (for all I in Inputs'Range => Is_Valid_Input (Inputs(I))),
-        Post => Process_Batch'Result'Length = Inputs'Length and then
-                (for all I in Process_Batch'Result'Range =>
-                   Is_Valid_Output (Process_Batch'Result(I))) and then
-                Stage.Items_Processed = Stage'Old.Items_Processed + Inputs'Length;
+   function Process_Batch
+     (Stage : in out Pipeline_Stage; Inputs : Input_Array) return Output_Array
+   with
+     Pre =>
+       Stage.Is_Initialized
+       and then Inputs'Length > 0
+       and then (for all I in Inputs'Range => Is_Valid_Input (Inputs (I))),
+     Post =>
+       Process_Batch'Result'Length = Inputs'Length
+       and then (for all I in Process_Batch'Result'Range
+                 => Is_Valid_Output (Process_Batch'Result (I)))
+       and then Stage.Items_Processed
+                = Stage'Old.Items_Processed + Inputs'Length;
 
    --  Parallel processing with Ada 2022 parallel blocks
-   function Process_Parallel (
-      Stage : in out Pipeline_Stage;
-      Inputs : Input_Array;
+   function Process_Parallel
+     (Stage        : in out Pipeline_Stage;
+      Inputs       : Input_Array;
       Worker_Count : Positive := 4) return Output_Array
-   with Pre => Stage.Is_Initialized and then
-               Inputs'Length > 0 and then
-               Worker_Count > 0 and then
-               (for all I in Inputs'Range => Is_Valid_Input (Inputs(I))),
-        Post => Process_Parallel'Result'Length = Inputs'Length;
+   with
+     Pre =>
+       Stage.Is_Initialized
+       and then Inputs'Length > 0
+       and then Worker_Count > 0
+       and then (for all I in Inputs'Range => Is_Valid_Input (Inputs (I))),
+     Post => Process_Parallel'Result'Length = Inputs'Length;
 
    --  Query methods with contracts
    function Is_Initialized (Stage : Pipeline_Stage) return Boolean
@@ -113,16 +126,15 @@ package Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
 
    --  State management with contracts
    procedure Reset (Stage : in out Pipeline_Stage)
-   with Pre => Stage.Is_Initialized,
-        Post => Stage.Is_Initialized and then
-                Stage.Items_Processed = 0;
+   with
+     Pre => Stage.Is_Initialized,
+     Post => Stage.Is_Initialized and then Stage.Items_Processed = 0;
 
-   procedure Update_State (
-      Stage : in out Pipeline_Stage;
-      New_State : State_Type)
-   with Pre => Stage.Is_Initialized and then
-               Is_Valid_State (New_State),
-        Post => Stage.Get_State = New_State;
+   procedure Update_State
+     (Stage : in out Pipeline_Stage; New_State : State_Type)
+   with
+     Pre => Stage.Is_Initialized and then Is_Valid_State (New_State),
+     Post => Stage.Get_State = New_State;
 
    --  Statistics and monitoring
    type Stage_Statistics is record

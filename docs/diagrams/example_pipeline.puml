@@ -1,0 +1,93 @@
+@startuml pipelib_example_pipeline
+!theme plain
+title Example: Processing a Log File with Pipelib
+
+skinparam defaultTextAlignment center
+skinparam note {
+  BackgroundColor LightYellow
+  BorderColor Black
+}
+
+rectangle "Input File\n(server.log)\n100 MB" as Input #LightBlue
+
+rectangle "Chunking\n(16 MB chunks)" as Chunking #LightGreen
+
+together {
+  rectangle "Chunk 1\n[0-16MB]" as C1 #LightCyan
+  rectangle "Chunk 2\n[16-32MB]" as C2 #LightCyan
+  rectangle "Chunk 3\n[32-48MB]" as C3 #LightCyan
+  rectangle "...\n" as C4 #LightCyan
+  rectangle "Chunk 7\n[96-100MB]" as C7 #LightCyan
+}
+
+rectangle "Pipeline Stages" as Pipeline {
+  rectangle "Stage 1:\nFilter Errors" as S1 #Pink
+  rectangle "Stage 2:\nExtract IPs" as S2 #Pink
+  rectangle "Stage 3:\nCompress" as S3 #Pink
+}
+
+together {
+  rectangle "Result 1" as R1 #LightYellow
+  rectangle "Result 2" as R2 #LightYellow
+  rectangle "Result 3" as R3 #LightYellow
+  rectangle "..." as R4 #LightYellow
+  rectangle "Result 7" as R7 #LightYellow
+}
+
+rectangle "Output File\n(errors.log.gz)\n~10 MB" as Output #LightBlue
+
+' Flow
+Input --> Chunking
+Chunking --> C1
+Chunking --> C2
+Chunking --> C3
+Chunking --> C4
+Chunking --> C7
+
+C1 --> Pipeline
+C2 --> Pipeline
+C3 --> Pipeline
+C4 --> Pipeline
+C7 --> Pipeline
+
+Pipeline --> R1
+Pipeline --> R2
+Pipeline --> R3
+Pipeline --> R4
+Pipeline --> R7
+
+R1 --> Output
+R2 --> Output
+R3 --> Output
+R4 --> Output
+R7 --> Output
+
+note right of Pipeline
+  Each chunk goes through
+  all stages in order:
+  1. Filter (find ERROR lines)
+  2. Extract (get IP addresses)
+  3. Compress (reduce size)
+end note
+
+note bottom of C2
+  Chunks are processed
+  in parallel by different
+  CPU cores
+end note
+
+note top of Output
+  Results are written in
+  correct order despite
+  parallel processing
+end note
+
+' Example timing
+note left of Input
+  **Performance Example:**
+  Sequential: ~10 seconds
+  Parallel (4 cores): ~3 seconds
+  Speedup: 3.3x
+end note
+
+@enduml

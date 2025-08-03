@@ -93,7 +93,8 @@ package Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
 
 private
    type Hasher_Stage_Type is new Ada.Finalization.Controlled with record
-      Hasher           : Abohlib.Core.Domain.Services.SHA256_Hasher.SHA256_Hasher_Type;
+      Hasher           :
+        Abohlib.Core.Domain.Services.SHA256_Hasher.SHA256_Hasher_Type;
       Chunks_Processed : Natural := 0;
       Bytes_Hashed     : Long_Long_Integer := 0;
       Is_Finalized     : Boolean := False;

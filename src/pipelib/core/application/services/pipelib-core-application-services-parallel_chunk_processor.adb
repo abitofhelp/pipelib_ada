@@ -12,25 +12,28 @@ with Ada.Containers;
 
 package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
 
-   use Pipelib.Infrastructure.IO.Random_Write_File;
-
    -- ----------
    --  Create
    -- ----------
 
    function Create
      (Worker_Count : Positive;
-      Output_File : Random_Write_File_Access;
-      Context : Context_Type) return Parallel_Processor_Access
+      Output_File  :
+        access
+          Pipelib
+            .Core
+            .Domain
+            .Ports
+            .File_Writer_Interface
+            .File_Writer_Interface'Class;
+      Context      : Context_Type) return Parallel_Processor_Access
    is
-      Processor : constant Parallel_Processor_Access := new Parallel_Processor_Type;
+      Processor : constant Parallel_Processor_Access :=
+        new Parallel_Processor_Type;
    begin
       Processor.Worker_Count := Worker_Count;
       Processor.Context := Context;
-
-      --  Create protected wrapper for output file
-      Processor.Output_File := new Protected_Random_Write_File;
-      Processor.Output_File.Initialize (Output_File);
+      Processor.Output_File := Output_File;
 
       --  Create worker tasks
       Processor.Workers := new Worker_Task_Array (1 .. Worker_Count);
@@ -63,8 +66,7 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    -- -----------------
 
    procedure Submit_Chunk
-     (Processor : in out Parallel_Processor_Type;
-      Chunk : File_Chunk_Type)
+     (Processor : in out Parallel_Processor_Type; Chunk : File_Chunk_Type)
    is
       Item : constant Work_Item := (Chunk => Chunk, Is_End_Marker => False);
    begin
@@ -75,7 +77,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    --  Signal_End_Of_Input
    -- ------------------------
 
-   procedure Signal_End_Of_Input (Processor : in out Parallel_Processor_Type) is
+   procedure Signal_End_Of_Input (Processor : in out Parallel_Processor_Type)
+   is
       End_Marker : Work_Item;
    begin
       Processor.End_Of_Input := True;
@@ -91,7 +94,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    --  Wait_For_Completion
    -- ------------------------
 
-   procedure Wait_For_Completion (Processor : in out Parallel_Processor_Type) is
+   procedure Wait_For_Completion (Processor : in out Parallel_Processor_Type)
+   is
    begin
       --  Wait for all workers to complete
       for Worker of Processor.Workers.all loop
@@ -147,7 +151,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    --  Chunks_Processed
    -- ---------------------
 
-   function Chunks_Processed (Processor : Parallel_Processor_Type) return Natural is
+   function Chunks_Processed
+     (Processor : Parallel_Processor_Type) return Natural is
    begin
       return Processor.Statistics.Get_Processed;
    end Chunks_Processed;
@@ -156,7 +161,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    --  Get_Error
    -- --------------
 
-   function Get_Error (Processor : Parallel_Processor_Type) return Unbounded_String is
+   function Get_Error
+     (Processor : Parallel_Processor_Type) return Unbounded_String is
    begin
       return Processor.Statistics.Get_Error;
    end Get_Error;
@@ -175,13 +181,15 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    -- -----------
 
    procedure Destroy (Processor : in out Parallel_Processor_Access) is
-      procedure Free is new Ada.Unchecked_Deallocation
-        (Parallel_Processor_Type, Parallel_Processor_Access);
+      procedure Free is new
+        Ada.Unchecked_Deallocation
+          (Parallel_Processor_Type,
+           Parallel_Processor_Access);
       type Worker_Task_Array_Access is access all Worker_Task_Array;
-      procedure Free_Array is new Ada.Unchecked_Deallocation
-        (Worker_Task_Array, Worker_Task_Array_Access);
-      procedure Free_Protected is new Ada.Unchecked_Deallocation
-        (Protected_Random_Write_File, Protected_Random_Write_File_Access);
+      procedure Free_Array is new
+        Ada.Unchecked_Deallocation
+          (Worker_Task_Array,
+           Worker_Task_Array_Access);
    begin
       if Processor /= null then
          --  Stop processing if running
@@ -190,16 +198,16 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
          --  Clean up resources
          if Processor.Workers /= null then
             declare
-               W : Worker_Task_Array_Access := Worker_Task_Array_Access (Processor.Workers);
+               W : Worker_Task_Array_Access :=
+                 Worker_Task_Array_Access (Processor.Workers);
             begin
                Free_Array (W);
                Processor.Workers := null;
             end;
          end if;
 
-         if Processor.Output_File /= null then
-            Free_Protected (Processor.Output_File);
-         end if;
+         --  Output_File is managed externally, no need to free it here
+         Processor.Output_File := null;
 
          declare
             P : Parallel_Processor_Access := Processor;
@@ -223,7 +231,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
 
       procedure Set_Error (Msg : Unbounded_String) is
       begin
-         if Length (Error_Message) = 0 then  -- Keep first error
+         if Length (Error_Message) = 0 then
+            -- Keep first error
             Error_Message := Msg;
          end if;
       end Set_Error;
@@ -250,7 +259,7 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
    -- ---------------------
 
    task body Worker_Task_Type is
-      Item : Work_Item;
+      Item        : Work_Item;
       Should_Stop : Boolean := False;
    begin
       --  Wait for start signal
@@ -273,7 +282,7 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
                begin
                   declare
                      Processed_Chunk : constant File_Chunk_Type :=
-                        Process_Chunk (Item.Chunk, Parent.Context);
+                       Process_Chunk (Item.Chunk, Parent.Context);
                   begin
                      --  Write to output file at correct position
                      Parent.Output_File.Write_Chunk (Processed_Chunk);
@@ -286,7 +295,8 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
                   when E : others =>
                      Parent.Statistics.Set_Error
                        (To_Unbounded_String
-                         ("Worker error: " & Ada.Exceptions.Exception_Message (E)));
+                          ("Worker error: "
+                           & Ada.Exceptions.Exception_Message (E)));
                      exit;  -- Stop on error
                end;
 
@@ -302,7 +312,7 @@ package body Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
       when E : others =>
          Parent.Statistics.Set_Error
            (To_Unbounded_String
-             ("Worker task error: " & Ada.Exceptions.Exception_Message (E)));
+              ("Worker task error: " & Ada.Exceptions.Exception_Message (E)));
    end Worker_Task_Type;
 
 end Pipelib.Core.Application.Services.Parallel_Chunk_Processor;

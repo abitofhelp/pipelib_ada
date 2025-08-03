@@ -1,6 +1,6 @@
 name = "pipelib"
 description = "Reusable pipeline components library"
-version = "0.1.0-dev"
+version = "1.0.0"
 
 authors = ["A Bit of Help, Inc. - Michael Gardner"]
 maintainers = ["A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>"]
@@ -20,7 +20,7 @@ abohlib = "*"
 abohlib = { path='../abohlib' }
 
 [build-profiles]
-"*" = "development"
+"*" = "release"
 
 [build-switches]
 "*".style_checks = ["-gnatyM120", "-gnatyx", "-gnatye", "-gnatyr", "-gnatyn", "-gnatyu", "-gnatyO"]

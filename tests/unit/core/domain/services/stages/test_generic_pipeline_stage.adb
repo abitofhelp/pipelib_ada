@@ -362,7 +362,7 @@ package body Test_Generic_Pipeline_Stage is
       -- Error handling structure exists, tested through statistics
       declare
          Config : constant Test_Config_Type := (Default_Multiplier => 1, Max_Value => 1000);
-         Stage : Pipeline_Stage := Create (Config);
+         Stage : constant Pipeline_Stage := Create (Config);
          Stats : constant Stage_Statistics := Get_Statistics (Stage);
       begin
          if Stats.Errors_Count /= 0 then
@@ -411,7 +411,8 @@ package body Test_Generic_Pipeline_Stage is
                return Void_Result.Err (Test_Error'(
                   Kind        => Assertion_Failed,
                   Message     => To_Unbounded_String ("State not updated correctly"),
-                  Details     => To_Unbounded_String ("Expected multiplier: 10, Got: " & Updated_State.Multiplier'Image),
+                  Details     => To_Unbounded_String (
+                     "Expected multiplier: 10, Got: " & Updated_State.Multiplier'Image),
                   Line_Number => 0,
                   Test_Name   => To_Unbounded_String ("Test_State_Management")
                ));
@@ -507,7 +508,8 @@ package body Test_Generic_Pipeline_Stage is
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Configuration not stored correctly"),
-               Details     => To_Unbounded_String ("Expected multiplier: 6, Got: " & Retrieved_Config.Default_Multiplier'Image),
+               Details     => To_Unbounded_String (
+                  "Expected multiplier: 6, Got: " & Retrieved_Config.Default_Multiplier'Image),
                Line_Number => 0,
                Test_Name   => To_Unbounded_String ("Test_Configuration_Management")
             ));
@@ -519,7 +521,7 @@ package body Test_Generic_Pipeline_Stage is
 
    function Test_Image_Representation return Void_Result.Result is
       Config : constant Test_Config_Type := (Default_Multiplier => 1, Max_Value => 1000);
-      Stage : Pipeline_Stage := Create (Config);
+      Stage : constant Pipeline_Stage := Create (Config);
    begin
       -- Test initial image
       declare

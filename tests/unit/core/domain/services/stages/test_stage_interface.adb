@@ -658,7 +658,13 @@ package body Test_Stage_Interface is
             ));
          end if;
 
+         -- Items_Count is Natural, so it's always >= 0
+         -- This check documents the contract but can never fail
+         pragma Warnings (Off, "condition can only be True if invalid values present");
+         pragma Warnings (Off, "condition is always False");
          if Items_Count < 0 then
+         pragma Warnings (On, "condition can only be True if invalid values present");
+         pragma Warnings (On, "condition is always False");
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Items count should be non-negative"),

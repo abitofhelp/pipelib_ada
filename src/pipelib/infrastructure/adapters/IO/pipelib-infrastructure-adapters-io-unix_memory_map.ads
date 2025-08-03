@@ -22,7 +22,8 @@ package Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
    use Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface;
 
    --  Unix-specific memory mapped file implementation
-   type Unix_Memory_Map is new Ada.Finalization.Limited_Controlled
+   type Unix_Memory_Map is
+     new Ada.Finalization.Limited_Controlled
      and Memory_Mapped_File_Interface with private;
    type Unix_Memory_Map_Access is access all Unix_Memory_Map;
 
@@ -55,9 +56,8 @@ package Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
    --  Create a subview of the mapped memory
    overriding
    function Create_Subview
-     (Self   : Unix_Memory_Map;
-      Offset : Storage_Count;
-      Length : Storage_Count) return Memory_View;
+     (Self : Unix_Memory_Map; Offset : Storage_Count; Length : Storage_Count)
+      return Memory_View;
 
    --  Sync changes to disk (for writable mappings)
    overriding
@@ -83,8 +83,10 @@ private
    type Platform_Handle is new Natural;
    Null_Handle : constant Platform_Handle := 0;
 
-   type Unix_Memory_Map is new Ada.Finalization.Limited_Controlled
-     and Memory_Mapped_File_Interface with record
+   type Unix_Memory_Map is
+     new Ada.Finalization.Limited_Controlled
+     and Memory_Mapped_File_Interface
+   with record
       Handle      : Platform_Handle := Null_Handle;
       Map_Address : System.Address := System.Null_Address;
       Map_Size    : Storage_Count := 0;

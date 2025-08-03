@@ -16,7 +16,6 @@ with Ada.Calendar; use Ada.Calendar;
 with Abohlib.Core.Domain.Constants.Bytes;
 with Pipelib.Core.Domain.Value_Objects.Chunk_Size; use Pipelib.Core.Domain.Value_Objects.Chunk_Size;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk; use Pipelib.Core.Domain.Value_Objects.File_Chunk;
-with Pipelib.Core.Domain.Entities.Chunk; use Pipelib.Core.Domain.Entities.Chunk;
 with Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage;
 
 package body Test_Pipeline_E2E is

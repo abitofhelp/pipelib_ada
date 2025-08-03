@@ -1,0 +1,102 @@
+@startuml pipelib_architecture_overview
+!theme plain
+title Pipelib Architecture Overview - DDD/Clean/Hexagonal Architecture
+
+skinparam componentStyle rectangle
+skinparam component {
+  BackgroundColor<<core>> LightBlue
+  BackgroundColor<<app>> LightGreen
+  BackgroundColor<<infra>> LightYellow
+  BackgroundColor<<interface>> LightPink
+}
+
+package "Presentation Layer" <<interface>> {
+  component [CLI Interface] as CLI
+  component [API Interface] as API
+}
+
+package "Application Layer" <<app>> {
+  component [Pipeline Orchestrator] as Orchestrator
+  component [Parallel Chunk Processor] as ParallelProc
+  component [Pipeline Factory] as Factory
+}
+
+package "Domain Layer (Core)" <<core>> {
+  package "Entities" {
+    component [Chunk Entity] as Chunk
+    component [Pipeline Entity] as Pipeline
+  }
+
+  package "Value Objects" {
+    component [File Chunk] as FileChunk
+    component [Chunk Size] as ChunkSize
+    component [Algorithm] as Algorithm
+    component [Stage Order] as StageOrder
+  }
+
+  package "Domain Services" {
+    component [Progress Tracker] as Progress
+    component [Stage Interface] as StageInterface
+    component [Generic Pipeline Stage] as GenericStage
+  }
+
+  package "Ports (Interfaces)" {
+    component [File Reader Interface] as ReaderPort
+    component [File Writer Interface] as WriterPort
+    component [Chunk Adapter Interface] as ChunkPort
+  }
+}
+
+package "Infrastructure Layer" <<infra>> {
+  package "I/O Adapters" {
+    component [Memory Mapped File] as MMFile
+    component [Random Write File] as RWFile
+    component [MM Chunk Adapter] as MMAdapter
+  }
+
+  package "External Services" {
+    component [File System] as FS
+    component [OS Memory Manager] as OSMem
+  }
+}
+
+' Presentation to Application
+CLI --> Orchestrator : uses
+API --> Orchestrator : uses
+
+' Application to Domain
+Orchestrator --> Pipeline : manages
+Orchestrator --> Factory : creates pipelines
+ParallelProc --> Chunk : processes
+ParallelProc --> StageInterface : coordinates
+
+' Domain internal relationships
+Pipeline --> GenericStage : contains
+GenericStage --> StageInterface : implements
+Chunk --> FileChunk : contains
+Chunk --> ChunkSize : uses
+Progress --> Chunk : tracks
+
+' Domain to Infrastructure (via Ports)
+ReaderPort <|.. MMFile : implements
+WriterPort <|.. RWFile : implements
+ChunkPort <|.. MMAdapter : implements
+
+' Infrastructure to External
+MMFile --> FS : reads
+MMFile --> OSMem : maps memory
+RWFile --> FS : writes
+
+note top of "Domain Layer (Core)"
+  Core business logic
+  No dependencies on outer layers
+  Pure Ada, no external dependencies
+end note
+
+note bottom of "Infrastructure Layer"
+  Technical implementations
+  Depends on Domain interfaces
+  Can be replaced without affecting core
+end note
+
+@enduml

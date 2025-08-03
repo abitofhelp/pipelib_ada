@@ -32,16 +32,16 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
    --  Process
    -- -----------
 
-   function Process (
-      Stage : in out Pipeline_Stage;
-      Input : Input_Type) return Output_Result.Result
+   function Process
+     (Stage : in out Pipeline_Stage; Input : Input_Type)
+      return Output_Result.Result
    is
       Start_Time : constant Time := Clock;
    begin
       begin
          declare
             Output : constant Output_Type :=
-               Process_Element (Stage.State, Stage.Config, Input);
+              Process_Element (Stage.State, Stage.Config, Input);
          begin
             Stage.Items_Processed := Stage.Items_Processed + 1;
             Stage.Total_Time := Stage.Total_Time + (Clock - Start_Time);
@@ -50,8 +50,9 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
       exception
          when E : others =>
             Stage.Errors_Count := Stage.Errors_Count + 1;
-            return Output_Result.Err
-               (To_Unbounded_String (Ada.Exceptions.Exception_Message (E)));
+            return
+              Output_Result.Err
+                (To_Unbounded_String (Ada.Exceptions.Exception_Message (E)));
       end;
    end Process;
 
@@ -59,25 +60,27 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
    --  Process_Batch
    -- -----------------
 
-   function Process_Batch (
-      Stage : in out Pipeline_Stage;
-      Inputs : Input_Array) return Output_Array
+   function Process_Batch
+     (Stage : in out Pipeline_Stage; Inputs : Input_Array) return Output_Array
    is
       Results : Output_Array (Inputs'Range);
    begin
       for I in Inputs'Range loop
          declare
             Result : constant Output_Result.Result :=
-               Process (Stage, Inputs (I));
+              Process (Stage, Inputs (I));
          begin
             if Output_Result.Is_Ok (Result) then
                Results (I) := Output_Result.Get_Ok (Result);
             else
                --  For batch processing, we'll use a default value on error
                --  In a real implementation, you might want to handle this differently
-               raise Program_Error with
-                  "Batch processing failed at index" & I'Image & ": " &
-                  To_String (Output_Result.Get_Err (Result));
+               raise Program_Error
+                 with
+                   "Batch processing failed at index"
+                   & I'Image
+                   & ": "
+                   & To_String (Output_Result.Get_Err (Result));
             end if;
          end;
       end loop;
@@ -88,26 +91,28 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
    --  Process_Parallel
    -- --------------------
 
-   function Process_Parallel (
-      Stage : in out Pipeline_Stage;
-      Inputs : Input_Array;
+   function Process_Parallel
+     (Stage        : in out Pipeline_Stage;
+      Inputs       : Input_Array;
       Worker_Count : Positive := 4) return Output_Array
    is
       Results : Output_Array (Inputs'Range);
-      pragma Unreferenced (Worker_Count); -- Will be used when parallel processing is implemented
+      pragma
+        Unreferenced
+          (Worker_Count); -- Will be used when parallel processing is implemented
    begin
       --  For now, use sequential processing
       --  (parallel syntax requires specific compiler support)
       for I in Inputs'Range loop
          declare
             Result : constant Output_Result.Result :=
-               Process (Stage, Inputs (I));
+              Process (Stage, Inputs (I));
          begin
             if Output_Result.Is_Ok (Result) then
                Results (I) := Output_Result.Get_Ok (Result);
             else
-               raise Program_Error with
-                  "Parallel processing failed at index" & I'Image;
+               raise Program_Error
+                 with "Parallel processing failed at index" & I'Image;
             end if;
          end;
       end loop;
@@ -176,9 +181,8 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
    --  Update_State
    -- ----------------
 
-   procedure Update_State (
-      Stage : in out Pipeline_Stage;
-      New_State : State_Type) is
+   procedure Update_State
+     (Stage : in out Pipeline_Stage; New_State : State_Type) is
    begin
       Stage.State := New_State;
    end Update_State;
@@ -192,15 +196,17 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
       Average_Time : Duration := 0.0;
    begin
       if Stage.Items_Processed > 0 then
-         Success_Rate := Float (Stage.Items_Processed - Stage.Errors_Count) * 100.0 /
-                        Float (Stage.Items_Processed);
+         Success_Rate :=
+           Float (Stage.Items_Processed - Stage.Errors_Count) * 100.0
+           / Float (Stage.Items_Processed);
          Average_Time := Stage.Total_Time / Stage.Items_Processed;
       end if;
 
-      return (Items_Processed => Stage.Items_Processed,
-              Errors_Count    => Stage.Errors_Count,
-              Success_Rate    => Success_Rate,
-              Average_Time_Ms => Average_Time);
+      return
+        (Items_Processed => Stage.Items_Processed,
+         Errors_Count    => Stage.Errors_Count,
+         Success_Rate    => Success_Rate,
+         Average_Time_Ms => Average_Time);
    end Get_Statistics;
 
    -- ---------
@@ -210,9 +216,15 @@ package body Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage is
    function Image (Stage : Pipeline_Stage) return String is
       Stats : constant Stage_Statistics := Get_Statistics (Stage);
    begin
-      return Stage_Name & "[items=" & Stage.Items_Processed'Image &
-             ", errors=" & Stage.Errors_Count'Image &
-             ", success_rate=" & Stats.Success_Rate'Image & "%]";
+      return
+        Stage_Name
+        & "[items="
+        & Stage.Items_Processed'Image
+        & ", errors="
+        & Stage.Errors_Count'Image
+        & ", success_rate="
+        & Stats.Success_Rate'Image
+        & "%]";
    end Image;
 
 end Pipelib.Core.Domain.Services.Stages.Generic_Pipeline_Stage;

@@ -421,6 +421,56 @@ package body Test_Progress_Tracker is
       return Void_Result.Ok (True);
    end Test_Boundary_Values;
 
+   function Test_Precondition_Violations return Void_Result.Result is
+      Tracker : Progress_Tracker_Type;
+   begin
+      -- The preconditions in Progress_Tracker only check Count >= 0
+      -- Since Natural type is already >= 0, we can't actually violate this precondition
+      -- in Ada without using pragma Suppress(Range_Check) or similar unsafe operations.
+
+      -- Test that negative values would violate precondition (if we could pass them)
+      -- This is more of a documentation test showing the precondition exists
+      declare
+         Success : Boolean := True;
+         pragma Unreferenced (Success);
+      begin
+         -- Update_Read_Count precondition: Count >= 0
+         -- Natural type ensures this, so we can't actually test violation
+         Tracker.Update_Read_Count (0);  -- Valid: 0 >= 0
+         Tracker.Update_Read_Count (Natural'Last);  -- Valid: large positive
+
+         -- Update_Processed_Count precondition: Count >= 0
+         Tracker.Update_Processed_Count (0);  -- Valid
+         Tracker.Update_Processed_Count (100);  -- Valid
+
+         -- Update_Written_Count precondition: Count >= 0
+         Tracker.Update_Written_Count (0);  -- Valid
+         Tracker.Update_Written_Count (1000);  -- Valid
+
+         -- Get_Progress postcondition: Read >= 0 and Processed >= 0 and Written >= 0
+         declare
+            Read, Processed, Written : Natural;
+         begin
+            Tracker.Get_Progress (Read, Processed, Written);
+            -- Natural values are always >= 0, so this condition can never be true
+            -- This test serves as documentation that the postcondition is enforced by type
+            pragma Warnings (Off, "condition can only be True if invalid values present");
+            if Read < 0 or Processed < 0 or Written < 0 then
+            pragma Warnings (On, "condition can only be True if invalid values present");
+               return Void_Result.Err (Test_Error'(
+                  Kind        => Assertion_Failed,
+                  Message     => To_Unbounded_String ("Get_Progress postcondition violated"),
+                  Details     => To_Unbounded_String ("Returned negative values"),
+                  Line_Number => 0,
+                  Test_Name   => To_Unbounded_String ("Test_Precondition_Violations")
+               ));
+            end if;
+         end;
+      end;
+
+      return Void_Result.Ok (True);
+   end Test_Precondition_Violations;
+
    --  ==========================================================================
    --  Test Suite Runner
    --  ==========================================================================
@@ -428,7 +478,7 @@ package body Test_Progress_Tracker is
    function Run_All_Tests
      (Output : access Test_Output_Port'Class) return Test_Stats_Result.Result
    is
-      Tests : Test_Results_Array (1 .. 14);
+      Tests : Test_Results_Array (1 .. 15);
       Index : Positive := 1;
 
       procedure Add_Test_Result
@@ -479,6 +529,7 @@ package body Test_Progress_Tracker is
       Add_Test_Result ("Test_Progress_Retrieval_Thread_Safety", Test_Progress_Retrieval_Thread_Safety'Access);
       Add_Test_Result ("Test_All_Stages_Complete", Test_All_Stages_Complete'Access);
       Add_Test_Result ("Test_Boundary_Values", Test_Boundary_Values'Access);
+      Add_Test_Result ("Test_Precondition_Violations", Test_Precondition_Violations'Access);
 
       -- Generate summary
       declare

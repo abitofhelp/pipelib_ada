@@ -13,9 +13,10 @@ with Ada.Containers.Vectors;
 package Pipelib.Core.Domain.Value_Objects.File_Chunk.Vectors is
 
    --  Vector of file chunks for batch processing
-   package File_Chunk_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => File_Chunk_Type);
+   package File_Chunk_Vectors is new
+     Ada.Containers.Vectors
+       (Index_Type   => Natural,
+        Element_Type => File_Chunk_Type);
 
    subtype File_Chunk_Vector is File_Chunk_Vectors.Vector;
 

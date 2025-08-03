@@ -81,4 +81,8 @@ private
    with Post => Test_Boundary_Values'Result.Is_Ok or
                 Test_Boundary_Values'Result.Is_Err;
 
+   function Test_Precondition_Violations return Void_Result.Result
+   with Post => Test_Precondition_Violations'Result.Is_Ok or
+                Test_Precondition_Violations'Result.Is_Err;
+
 end Test_Progress_Tracker;

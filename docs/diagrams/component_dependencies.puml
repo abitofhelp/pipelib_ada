@@ -1,0 +1,141 @@
+@startuml pipelib_component_dependencies
+!theme plain
+title Pipelib Component Dependencies
+
+skinparam component {
+  BackgroundColor<<external>> LightGray
+  BackgroundColor<<domain>> LightBlue
+  BackgroundColor<<application>> LightGreen
+  BackgroundColor<<infrastructure>> LightYellow
+  BackgroundColor<<test>> Pink
+}
+
+' External Dependencies
+component "Ada Standard Library" <<external>> as AdaStd
+component "Abohlib" <<external>> as Abohlib
+component "SHA2" <<external>> as SHA2
+component "ULID" <<external>> as ULID
+
+' Domain Layer Components
+package "Core.Domain" <<domain>> {
+  component "Entities" as Entities {
+    component "Chunk" as ChunkEntity
+  }
+
+  component "Value Objects" as ValueObjects {
+    component "File_Chunk" as FileChunkVO
+    component "Chunk_Size" as ChunkSizeVO
+    component "Algorithm" as AlgorithmVO
+    component "Stage_Order" as StageOrderVO
+  }
+
+  component "Services" as DomainServices {
+    component "Progress_Tracker" as ProgressTracker
+    component "Stage_Interface" as StageInterface
+    component "Generic_Pipeline_Stage" as GenericStage
+  }
+
+  component "Ports" as Ports {
+    component "File_Reader_Interface" as ReaderPort
+    component "File_Writer_Interface" as WriterPort
+    component "Chunk_Adapter_Interface" as ChunkAdapterPort
+  }
+
+  component "Errors" as DomainErrors
+}
+
+' Application Layer Components
+package "Core.Application" <<application>> {
+  component "Services" as AppServices {
+    component "Parallel_Chunk_Processor" as ParallelProcessor
+    component "Pipeline_Factory" as PipelineFactory
+  }
+
+  component "Use Cases" as UseCases {
+    component "Process_File_Use_Case" as ProcessFileUC
+  }
+}
+
+' Infrastructure Layer Components
+package "Infrastructure" <<infrastructure>> {
+  component "I/O" as IO {
+    component "Memory_Mapped_File" as MMFile
+    component "Random_Write_File" as RWFile
+    component "Memory_Mapped_Chunk_Adapter" as MMChunkAdapter
+  }
+
+  component "Algorithms" as AlgoImpls {
+    component "SHA256_Hasher" as SHA256Hasher
+    component "Base64_Encoder" as Base64Enc
+    component "Text_Transformers" as TextTrans
+  }
+}
+
+' Test Components
+package "Tests" <<test>> {
+  component "Unit Tests" as UnitTests
+  component "Integration Tests" as IntegTests
+  component "E2E Tests" as E2ETests
+  component "Performance Tests" as PerfTests
+  component "Test Framework" as TestFramework
+}
+
+' Domain Layer Dependencies
+ChunkEntity --> ChunkSizeVO : uses
+ChunkEntity --> FileChunkVO : contains
+FileChunkVO --> ChunkSizeVO : uses
+GenericStage --> AlgorithmVO : uses
+GenericStage --> StageInterface : implements
+ProgressTracker --> AdaStd : uses
+
+' Application Layer Dependencies
+ParallelProcessor --> ChunkEntity : processes
+ParallelProcessor --> StageInterface : coordinates
+ParallelProcessor --> ProgressTracker : updates
+PipelineFactory --> GenericStage : creates
+ProcessFileUC --> ParallelProcessor : uses
+ProcessFileUC --> ReaderPort : uses
+ProcessFileUC --> WriterPort : uses
+
+' Infrastructure Layer Dependencies
+MMFile --> ReaderPort : implements
+MMFile --> ChunkAdapterPort : implements
+RWFile --> WriterPort : implements
+MMChunkAdapter --> ChunkAdapterPort : implements
+SHA256Hasher --> SHA2 : uses
+SHA256Hasher --> AlgorithmVO : implements
+
+' External Dependencies
+ValueObjects --> Abohlib : uses constants
+DomainErrors --> Abohlib : uses Result type
+FileChunkVO --> ULID : generates IDs
+TestFramework --> Abohlib : uses test framework
+
+' Test Dependencies
+UnitTests --> Entities : tests
+UnitTests --> ValueObjects : tests
+UnitTests --> DomainServices : tests
+IntegTests --> AppServices : tests
+E2ETests --> ProcessFileUC : tests
+PerfTests --> ParallelProcessor : benchmarks
+
+' Dependency Rules
+note top of "Core.Domain"
+  **Dependency Rule**:
+  Domain layer has NO dependencies
+  on Application or Infrastructure
+end note
+
+note right of "Core.Application"
+  **Dependency Rule**:
+  Application depends on Domain
+  but NOT on Infrastructure
+end note
+
+note bottom of "Infrastructure"
+  **Dependency Rule**:
+  Infrastructure depends on Domain interfaces
+  Can be swapped without changing core
+end note
+
+@enduml

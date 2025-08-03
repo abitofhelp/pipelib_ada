@@ -16,8 +16,8 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    use Abohlib.Core.Domain.Constants.Bytes;
 
    --  Chunk size bounds (1KB to 1GB)
-   MIN_CHUNK_SIZE : constant Long_Long_Integer := SI_KB;
-   MAX_CHUNK_SIZE : constant Long_Long_Integer := SI_GB;
+   MIN_CHUNK_SIZE     : constant Long_Long_Integer := SI_KB;
+   MAX_CHUNK_SIZE     : constant Long_Long_Integer := SI_GB;
    DEFAULT_CHUNK_SIZE : constant Long_Long_Integer := 16 * SI_MB;
 
    --  Common chunk sizes
@@ -42,14 +42,14 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    --  Constructor with validation
    function Create (Bytes : Long_Long_Integer) return Chunk_Size_Type
    with
-     Pre  => Bytes >= MIN_CHUNK_SIZE and Bytes <= MAX_CHUNK_SIZE,
+     Pre => Bytes >= MIN_CHUNK_SIZE and Bytes <= MAX_CHUNK_SIZE,
      Post => Value (Create'Result) = Bytes and Is_Valid (Create'Result);
 
    --  Get the value in bytes
    function Value (Size : Chunk_Size_Type) return Long_Long_Integer
    with
-     Pre    => Is_Valid (Size),
-     Post   => Value'Result >= MIN_CHUNK_SIZE and Value'Result <= MAX_CHUNK_SIZE,
+     Pre => Is_Valid (Size),
+     Post => Value'Result >= MIN_CHUNK_SIZE and Value'Result <= MAX_CHUNK_SIZE,
      Inline;
 
    --  Validation
@@ -59,63 +59,70 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    --  Factory methods
    function Default return Chunk_Size_Type
    with
-     Post => Value (Default'Result) = DEFAULT_CHUNK_SIZE and Is_Valid (Default'Result);
+     Post =>
+       Value (Default'Result) = DEFAULT_CHUNK_SIZE
+       and Is_Valid (Default'Result);
 
    function Min return Chunk_Size_Type
-   with
-     Post => Value (Min'Result) = MIN_CHUNK_SIZE and Is_Valid (Min'Result);
+   with Post => Value (Min'Result) = MIN_CHUNK_SIZE and Is_Valid (Min'Result);
 
    function Max return Chunk_Size_Type
-   with
-     Post => Value (Max'Result) = MAX_CHUNK_SIZE and Is_Valid (Max'Result);
+   with Post => Value (Max'Result) = MAX_CHUNK_SIZE and Is_Valid (Max'Result);
 
    --  Convenience constructors
    function From_KB (KB : Natural) return Chunk_Size_Type
    with
-     Pre  => Long_Long_Integer (KB) * SI_KB >= MIN_CHUNK_SIZE
-             and Long_Long_Integer (KB) * SI_KB <= MAX_CHUNK_SIZE,
-     Post => Value (From_KB'Result) = Long_Long_Integer (KB) * SI_KB
-             and Is_Valid (From_KB'Result);
+     Pre =>
+       Long_Long_Integer (KB) * SI_KB >= MIN_CHUNK_SIZE
+       and Long_Long_Integer (KB) * SI_KB <= MAX_CHUNK_SIZE,
+     Post =>
+       Value (From_KB'Result) = Long_Long_Integer (KB) * SI_KB
+       and Is_Valid (From_KB'Result);
 
    function From_MB (MB : Natural) return Chunk_Size_Type
    with
-     Pre  => Long_Long_Integer (MB) * SI_MB >= MIN_CHUNK_SIZE
-             and Long_Long_Integer (MB) * SI_MB <= MAX_CHUNK_SIZE,
-     Post => Value (From_MB'Result) = Long_Long_Integer (MB) * SI_MB
-             and Is_Valid (From_MB'Result);
+     Pre =>
+       Long_Long_Integer (MB) * SI_MB >= MIN_CHUNK_SIZE
+       and Long_Long_Integer (MB) * SI_MB <= MAX_CHUNK_SIZE,
+     Post =>
+       Value (From_MB'Result) = Long_Long_Integer (MB) * SI_MB
+       and Is_Valid (From_MB'Result);
 
    --  Named size constructors
    function Small return Chunk_Size_Type   -- 1MB
-   with
-     Post => Value (Small'Result) = SIZE_1MB and Is_Valid (Small'Result);
+   with Post => Value (Small'Result) = SIZE_1MB and Is_Valid (Small'Result);
 
    function Medium return Chunk_Size_Type  -- 16MB (default)
-   with
-     Post => Value (Medium'Result) = SIZE_16MB and Is_Valid (Medium'Result);
+   with Post => Value (Medium'Result) = SIZE_16MB and Is_Valid (Medium'Result);
 
    function Large return Chunk_Size_Type   -- 64MB
-   with
-     Post => Value (Large'Result) = SIZE_64MB and Is_Valid (Large'Result);
+   with Post => Value (Large'Result) = SIZE_64MB and Is_Valid (Large'Result);
 
    --  Adaptive chunk size based on total size
-   function Adaptive_For_Size (Total_Size : Long_Long_Integer) return Chunk_Size_Type
+   function Adaptive_For_Size
+     (Total_Size : Long_Long_Integer) return Chunk_Size_Type
    with
-     Pre  => Total_Size > 0,
-     Post => Is_Valid (Adaptive_For_Size'Result)
-             and Value (Adaptive_For_Size'Result) >= MIN_CHUNK_SIZE
-             and Value (Adaptive_For_Size'Result) <= MAX_CHUNK_SIZE;
+     Pre => Total_Size > 0,
+     Post =>
+       Is_Valid (Adaptive_For_Size'Result)
+       and Value (Adaptive_For_Size'Result) >= MIN_CHUNK_SIZE
+       and Value (Adaptive_For_Size'Result) <= MAX_CHUNK_SIZE;
 
 private
 
    type Chunk_Size_Type is record
-      Bytes : Long_Long_Integer range MIN_CHUNK_SIZE .. MAX_CHUNK_SIZE := DEFAULT_CHUNK_SIZE;
+      Bytes : Long_Long_Integer range MIN_CHUNK_SIZE .. MAX_CHUNK_SIZE :=
+        DEFAULT_CHUNK_SIZE;
    end record;
 
-   function Value (Size : Chunk_Size_Type) return Long_Long_Integer is (Size.Bytes);
+   function Value (Size : Chunk_Size_Type) return Long_Long_Integer
+   is (Size.Bytes);
 
-   pragma Warnings (Off, "condition can only be False if invalid values present");
-   function Is_Valid (Size : Chunk_Size_Type) return Boolean is
-      (Size.Bytes >= MIN_CHUNK_SIZE and Size.Bytes <= MAX_CHUNK_SIZE);
-   pragma Warnings (On, "condition can only be False if invalid values present");
+   pragma
+     Warnings (Off, "condition can only be False if invalid values present");
+   function Is_Valid (Size : Chunk_Size_Type) return Boolean
+   is (Size.Bytes >= MIN_CHUNK_SIZE and Size.Bytes <= MAX_CHUNK_SIZE);
+   pragma
+     Warnings (On, "condition can only be False if invalid values present");
 
 end Pipelib.Core.Domain.Value_Objects.Chunk_Size;
