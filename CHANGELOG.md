@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2025-08-04
+
+### Changed
+- Adjusted build profiles for development and release configurations
+- Improved Makefile organization and command structure
+- Updated documentation diagrams for clarity
+- Minor configuration file optimizations
+
+### Fixed
+- Build profile settings now properly separate development and release builds
+- Makefile help text formatting and command grouping
+
 ## [1.0.0] - 2025-08-03
 
 ### Added

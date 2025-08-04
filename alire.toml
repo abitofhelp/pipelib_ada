@@ -1,6 +1,6 @@
 name = "pipelib"
 description = "Reusable pipeline components library"
-version = "1.0.0"
+version = "1.0.1"
 
 authors = ["A Bit of Help, Inc. - Michael Gardner"]
 maintainers = ["A Bit of Help, Inc. - Michael Gardner <mjgardner@abitofhelp.com>"]
