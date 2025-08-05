@@ -2,7 +2,7 @@
 with "abohlib.gpr";
 with "sha2.gpr";
 abstract project Pipelib_Config is
-   Crate_Version := "1.0.1";
+   Crate_Version := "1.0.2";
    Crate_Name := "pipelib";
 
    Alire_Host_OS := "macos";
