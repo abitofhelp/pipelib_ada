@@ -228,7 +228,7 @@ end Test_State_Transitions;
 
 **Memory_Mapped_Chunk_Adapter Contracts** (6 test functions)
 - `Test_Calculate_Optimal_Chunk_Size_Contracts`: Size calculation bounds (1KB-512MB)
-- `Test_Should_Use_Memory_Mapping_Contracts`: Mapping decision logic (100MB-1GB)
+- `Test_Should_Use_Memory_Mapping_Contracts`: Mapping decision logic (Min_Memory_Map_Size - Max_Memory_Map_Size)
 - `Test_Create_Chunks_Preconditions`: Input validation contracts
 - `Test_Single_Chunk_Creation_Contracts`: Single chunk creation guarantees
 - `Test_Zero_Copy_Access_Guarantees`: Memory access postconditions
@@ -299,7 +299,7 @@ end Test_State_Transitions;
 - **Memory-mapped**: 1 GB/s for large files
 
 #### 3.3.2 Latency Testing
-- **Chunk creation**: <1ms for 1MB chunks
+- **Chunk creation**: <1ms for Medium_Chunk_Size chunks
 - **State transitions**: <100μs
 - **Progress updates**: <10μs
 
@@ -409,7 +409,8 @@ is
 begin
    -- Fill with test pattern
    for I in Data'Range loop
-      Data (I) := Stream_Element (I mod 256);
+      Data (I) := Stream_Element (I mod Max_Worker_Count);
+      -- Uses Domain.Constants.Max_Worker_Count
    end loop;
 
    return Create_Chunk (Data, Sequence, False);
@@ -417,7 +418,7 @@ end Generate_Test_Chunk;
 
 -- Generate test file scenarios
 function Generate_Large_File_Scenario return Test_Scenario is
-  (Size => 1_000_000_000,  -- 1GB
+  (Size => GB,  -- 1GB from Domain.Constants
    Chunk_Count => 1000,
    Worker_Count => 8);
 ```
@@ -587,14 +588,15 @@ end Test_Chunk_State_Transitions;
 ```ada
 procedure Test_Memory_Mapping_Decision is
 begin
-   -- Small files should not use memory mapping
-   Assert (not Should_Use_Memory_Mapping_For_File (50 * 1024 * 1024));
+   -- Small files should not use memory mapping (below Min_Memory_Map_Size)
+   Assert (not Should_Use_Memory_Mapping_For_File (50 * MB));
 
-   -- Medium files should use memory mapping
-   Assert (Should_Use_Memory_Mapping_For_File (500 * 1024 * 1024));
+   -- Medium files should use memory mapping (within valid range)
+   Assert (Should_Use_Memory_Mapping_For_File (500 * MB));
 
-   -- Very large files should not use memory mapping
-   Assert (not Should_Use_Memory_Mapping_For_File (2048 * 1024 * 1024));
+   -- Very large files should not use memory mapping (above Max_Memory_Map_Size)
+   Assert (not Should_Use_Memory_Mapping_For_File (2 * GB));
+   -- Uses Domain.Constants for MB and GB units
 end Test_Memory_Mapping_Decision;
 ```
 
@@ -626,7 +628,7 @@ end Test_Parallel_Processor_Lifecycle;
 #### 6.2.1 TC-INT-001: End-to-End Pipeline Processing
 **Objective**: Validate complete pipeline processing flow
 **Priority**: High
-**Test Data**: 100MB test file with known content
+**Test Data**: Min_Memory_Map_Size test file with known content
 **Expected Result**: File processed correctly with all chunks verified
 ```ada
 procedure Test_End_To_End_Pipeline is
@@ -1038,13 +1040,13 @@ Throughput Tests:
 - Memory-mapped: 1.2 GB/s (Target: 1 GB/s) ✓
 
 Latency Tests:
-- Chunk creation (1MB): 0.8ms (Target: <1ms) ✓
+- Chunk creation (Medium_Chunk_Size): 0.8ms (Target: <1ms) ✓
 - State transitions: 45μs (Target: <100μs) ✓
 - Progress updates: 3μs (Target: <10μs) ✓
 
 Memory Efficiency:
 - Memory overhead: 3.2% (Target: <5%) ✓
-- Peak memory usage: 1.2GB (for 1GB file)
+- Peak memory usage: 1.2GB (for Max_Memory_Map_Size file)
 - Memory leaks: None detected ✓
 ```
 

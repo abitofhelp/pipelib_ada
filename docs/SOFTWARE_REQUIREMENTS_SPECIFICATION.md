@@ -236,7 +236,8 @@ Created → Reading → Read → Processing → Processed → Writing → Writte
 **Requirement:** The system shall automatically determine when to use memory mapping.
 
 **Decision Criteria:**
-- File size between 100MB and 1GB optimizes memory mapping benefits
+- File size between Min_Memory_Map_Size and Max_Memory_Map_Size optimizes memory mapping benefits
+  (Default: 100MB - 1GB, configurable via Domain.Constants)
 - Available system memory considerations
 - File access pattern (sequential vs. random)
 - Performance characteristics of storage medium
@@ -248,10 +249,11 @@ function Should_Use_Memory_Mapping_For_File
    Available_Memory : Storage_Count := 0)
   return Boolean
 with Pre => File_Size > 0,
-     Post => (if File_Size < 100 * 1024 * 1024 then
+     Post => (if File_Size < Min_Memory_Map_Size then
                 not Should_Use_Memory_Mapping_For_File'Result) and then
-             (if File_Size > 1024 * 1024 * 1024 then
+             (if File_Size > Max_Memory_Map_Size then
                 not Should_Use_Memory_Mapping_For_File'Result);
+  -- Uses Domain.Constants for threshold values
 ```
 
 #### 4.2.2 Optimal Chunk Size Calculation (REQ-MMAP-002)
@@ -371,7 +373,7 @@ with Post => Is_All_Complete'Result =
 **Performance Targets:**
 - Single-threaded: 100 MB/s for sequential processing
 - Multi-threaded: 500 MB/s with 8 cores
-- Memory-mapped: 1 GB/s for large files (> 100MB)
+- Memory-mapped: 1 GB/s for large files (> Min_Memory_Map_Size)
 - Chunk processing: 10,000 chunks/second minimum
 
 #### 5.1.2 Memory Efficiency (REQ-PERF-002)
@@ -387,7 +389,7 @@ with Post => Is_All_Complete'Result =
 **Requirement:** The system shall minimize processing latency.
 
 **Latency Targets:**
-- Chunk creation: < 1ms for chunks up to 1MB
+- Chunk creation: < 1ms for chunks up to Medium_Chunk_Size (default: 1MB)
 - State transitions: < 100μs
 - Progress updates: < 10μs
 - Worker task communication: < 1ms

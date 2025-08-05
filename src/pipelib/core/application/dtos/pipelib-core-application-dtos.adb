@@ -11,8 +11,8 @@ package body Pipelib.Core.Application.DTOs is
    function Create_Process_Request
      (Data_Address    : System.Address;
       Data_Size       : Storage_Count;
-      File_Position   : Long_Long_Integer;
-      Sequence_Number : Natural := 0;
+      File_Position   : File_Position_Type;
+      Sequence_Number : Sequence_Number_Type := 0;
       Priority        : Processing_Priority := Normal;
       Is_Final        : Boolean := False) return Process_Chunk_Request is
    begin
@@ -26,9 +26,9 @@ package body Pipelib.Core.Application.DTOs is
    end Create_Process_Request;
 
    function Create_Success_Response
-     (Sequence        : Natural;
+     (Sequence        : Sequence_Number_Type;
       Bytes_Processed : Storage_Count;
-      Processing_Time : Natural) return Process_Chunk_Response is
+      Processing_Time : Processing_Time_Ms_Type) return Process_Chunk_Response is
    begin
       return
         (Success            => True,

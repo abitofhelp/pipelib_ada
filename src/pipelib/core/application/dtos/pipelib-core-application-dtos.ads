@@ -81,11 +81,13 @@ pragma Ada_2022;
 
 with Ada.Strings.Unbounded;
 with System.Storage_Elements;
+with Pipelib.Core.Domain.Constants;
 
 package Pipelib.Core.Application.DTOs is
 
    use Ada.Strings.Unbounded;
    use System.Storage_Elements;
+   use Pipelib.Core.Domain.Constants;
 
    --  ## Processing Priority Levels
    --
@@ -108,12 +110,12 @@ package Pipelib.Core.Application.DTOs is
    type Process_Chunk_Request is record
       Data_Address    : System.Address;
       Data_Size       : Storage_Count;
-      File_Position   : Long_Long_Integer;
-      Sequence_Number : Natural := 0;  -- 0 means auto-assign
+      File_Position   : File_Position_Type;
+      Sequence_Number : Sequence_Number_Type := 0;
       Priority        : Processing_Priority := Normal;
       Is_Final_Chunk  : Boolean := False;
    end record
-   with Dynamic_Predicate => Data_Size > 0 and File_Position >= 0;
+   with Dynamic_Predicate => Data_Size > 0;
 
    --  ## Chunk Processing Response DTO
    --
@@ -128,9 +130,9 @@ package Pipelib.Core.Application.DTOs is
    --  * `Error_Message` - Human-readable error description (if not successful)
    type Process_Chunk_Response is record
       Success            : Boolean;
-      Actual_Sequence    : Natural;
+      Actual_Sequence    : Sequence_Number_Type;
       Bytes_Processed    : Storage_Count;
-      Processing_Time_Ms : Natural;
+      Processing_Time_Ms : Processing_Time_Ms_Type;
       Error_Message      : Unbounded_String;
    end record;
 
@@ -149,12 +151,12 @@ package Pipelib.Core.Application.DTOs is
    --  * `Active_Workers` - Number of currently active worker threads
    --  * `Queue_Depth` - Number of chunks waiting for processing
    type Pipeline_Statistics is record
-      Total_Chunks_Submitted     : Natural := 0;
-      Total_Chunks_Completed     : Natural := 0;
-      Total_Chunks_Failed        : Natural := 0;
+      Total_Chunks_Submitted     : Chunk_Count_Type := 0;
+      Total_Chunks_Completed     : Chunk_Count_Type := 0;
+      Total_Chunks_Failed        : Chunk_Count_Type := 0;
       Total_Bytes_Processed      : Long_Long_Integer := 0;
-      Average_Processing_Time_Ms : Natural := 0;
-      Peak_Throughput_MBps       : Natural := 0;
+      Average_Processing_Time_Ms : Processing_Time_Ms_Type := 0;
+      Peak_Throughput_MBps       : Throughput_MBps_Type := 0.0;
       Active_Workers             : Natural := 0;
       Queue_Depth                : Natural := 0;
    end record;
@@ -172,9 +174,14 @@ package Pipelib.Core.Application.DTOs is
    --  * `Output_File_Path` - Path to output file
    --  * `Use_Temporary_File` - Whether to use temporary file for atomic writes
    type Pipeline_Configuration is record
-      Worker_Count       : Positive range 1 .. 64 := 4;
-      Chunk_Size_Bytes   : Positive := 65_536;  -- 64KB default
-      Max_Queue_Depth    : Positive := 100;
+      Worker_Count       : Positive range 1 .. Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count_Range)
+                            := Natural (Pipelib.Core.Domain.Constants.Default_Worker_Count);
+      Chunk_Size_Bytes   : Positive :=
+         Pipelib.Core.Domain.Constants.To_Natural
+            (Pipelib.Core.Domain.Constants.Default_Chunk_Size);
+      Max_Queue_Depth    : Positive :=
+         Pipelib.Core.Domain.Constants.To_Natural
+            (Pipelib.Core.Domain.Constants.Default_Max_Queue_Depth);
       Enable_Statistics  : Boolean := True;
       Output_File_Path   : Unbounded_String;
       Use_Temporary_File : Boolean := True;
@@ -214,8 +221,8 @@ package Pipelib.Core.Application.DTOs is
    function Create_Process_Request
      (Data_Address    : System.Address;
       Data_Size       : Storage_Count;
-      File_Position   : Long_Long_Integer;
-      Sequence_Number : Natural := 0;
+      File_Position   : File_Position_Type;
+      Sequence_Number : Sequence_Number_Type := 0;
       Priority        : Processing_Priority := Normal;
       Is_Final        : Boolean := False) return Process_Chunk_Request
    with
@@ -226,9 +233,9 @@ package Pipelib.Core.Application.DTOs is
 
    --  Create a success response
    function Create_Success_Response
-     (Sequence        : Natural;
+     (Sequence        : Sequence_Number_Type;
       Bytes_Processed : Storage_Count;
-      Processing_Time : Natural) return Process_Chunk_Response
+      Processing_Time : Processing_Time_Ms_Type) return Process_Chunk_Response
    with Post => Create_Success_Response'Result.Success = True;
 
    --  Create an error response

@@ -36,7 +36,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
          else Storage_Count'Min (Actual_Start + Max_Bytes, File_Size));
 
       Current_Offset : Storage_Count := Actual_Start;
-      Sequence       : Natural := 0;
+      Sequence       : Pipelib.Core.Domain.Constants.Sequence_Number_Type := 0;
       Chunk_Size     : constant Positive := Config.Default_Chunk_Size;
 
    begin
@@ -68,7 +68,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
             File_Chunk_Vectors.Append (Chunks, Chunk);
 
             Current_Offset := Current_Offset + This_Chunk_Size;
-            Sequence := Sequence + 1;
+            Sequence := Pipelib.Core.Domain.Constants.Sequence_Number_Type (Natural (Sequence) + 1);
          end;
       end loop;
 
@@ -86,7 +86,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    --  Create a single chunk from memory-mapped file region
    function Create_Single_Chunk_From_Memory_Map
      (Map                : Memory_Mapped_File_Interface'Class;
-      Sequence_Number    : Natural;
+      Sequence_Number    : Pipelib.Core.Domain.Constants.Sequence_Number_Type;
       Offset             : Storage_Count;
       Length             : Storage_Count;
       Is_Final           : Boolean;
@@ -108,7 +108,7 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
          Chunk : File_Chunk_Type :=
            Create_From_Access
              (Sequence_Number => Sequence_Number,
-              Offset          => Long_Long_Integer (Offset),
+              Offset          => Pipelib.Core.Domain.Constants.File_Position_Type (Offset),
               Data            => Stream_Access,
               Is_Final        => Is_Final);
       begin
@@ -129,29 +129,19 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    is
       pragma Unreferenced (Available_Memory);
 
-      --  Constants based on empirical testing (similar to Rust implementation)
-      Small_File_Threshold  : constant Storage_Count :=
-        10 * 1024 * 1024; -- 10MB
-      Medium_File_Threshold : constant Storage_Count :=
-        100 * 1024 * 1024; -- 100MB
-      Large_File_Threshold  : constant Storage_Count :=
-        1024 * 1024 * 1024; -- 1GB
-
-      Small_Chunk_Size  : constant Positive := 64 * 1024; -- 64KB
-      Medium_Chunk_Size : constant Positive := 1024 * 1024; -- 1MB
-      Large_Chunk_Size  : constant Positive := 4 * 1024 * 1024; -- 4MB
-      Huge_Chunk_Size   : constant Positive := 16 * 1024 * 1024; -- 16MB
+      --  Use constants from domain constants package
+      use Pipelib.Core.Domain.Constants;
 
    begin
       --  Adaptive chunk sizing based on file size
-      if File_Size <= Small_File_Threshold then
-         return Small_Chunk_Size;
-      elsif File_Size <= Medium_File_Threshold then
-         return Medium_Chunk_Size;
-      elsif File_Size <= Large_File_Threshold then
-         return Large_Chunk_Size;
+      if File_Size <= To_Storage_Count (Small_File_Threshold) then
+         return To_Natural (Small_Chunk_Size);
+      elsif File_Size <= To_Storage_Count (Medium_File_Threshold) then
+         return To_Natural (Medium_Chunk_Size);
+      elsif File_Size <= To_Storage_Count (Large_File_Threshold) then
+         return To_Natural (Large_Chunk_Size);
       else
-         return Huge_Chunk_Size;
+         return To_Natural (Huge_Chunk_Size);
       end if;
    end Calculate_Optimal_Chunk_Size;
 
@@ -163,15 +153,13 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    is
       pragma Unreferenced (Available_Memory);
 
-      --  Minimum file size for memory mapping (100MB)
-      Min_Mmap_Size : constant Storage_Count := 100 * 1024 * 1024;
-
-      --  Maximum file size for memory mapping (1GB default)
-      Max_Mmap_Size : constant Storage_Count := 1024 * 1024 * 1024;
+      --  Use constants from domain constants package
+      use Pipelib.Core.Domain.Constants;
 
    begin
-      --  Use memory mapping for files between 100MB and 1GB
-      return File_Size >= Min_Mmap_Size and then File_Size <= Max_Mmap_Size;
+      --  Use memory mapping for files between min and max sizes
+      return File_Size >= To_Storage_Count (Min_Memory_Map_Size)
+        and then File_Size <= To_Storage_Count (Max_Memory_Map_Size);
    end Should_Use_Memory_Mapping_For_File;
 
    --  Internal function to create Stream_Element_Array_Access from memory view

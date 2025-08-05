@@ -10,30 +10,32 @@
 pragma Ada_2022;
 
 with Abohlib.Core.Domain.Constants.Bytes;
+with Abohlib.Core.Domain.Types;
 
 package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
    use Abohlib.Core.Domain.Constants.Bytes;
+   use Abohlib.Core.Domain.Types;
 
-   --  Chunk size bounds (1KB to 1GB)
-   MIN_CHUNK_SIZE     : constant Long_Long_Integer := SI_KB;
-   MAX_CHUNK_SIZE     : constant Long_Long_Integer := SI_GB;
-   DEFAULT_CHUNK_SIZE : constant Long_Long_Integer := 16 * SI_MB;
+   --  Chunk size bounds (1KB to 1GB) using typed constants
+   MIN_CHUNK_SIZE     : constant Long_Long_Integer := Long_Long_Integer (SI_KB);
+   MAX_CHUNK_SIZE     : constant Long_Long_Integer := Long_Long_Integer (SI_GB);
+   DEFAULT_CHUNK_SIZE : constant Long_Long_Integer := Long_Long_Integer (16 * SI_MB);
 
-   --  Common chunk sizes
-   SIZE_1KB : constant := 1 * SI_KB;
-   SIZE_4KB : constant := 4 * SI_KB;
-   SIZE_64KB : constant := 64 * SI_KB;
-   SIZE_256KB : constant := 256 * SI_KB;
-   SIZE_1MB : constant := 1 * SI_MB;
-   SIZE_4MB : constant := 4 * SI_MB;
-   SIZE_8MB : constant := 8 * SI_MB;
-   SIZE_16MB : constant := 16 * SI_MB;
-   SIZE_32MB : constant := 32 * SI_MB;
-   SIZE_64MB : constant := 64 * SI_MB;
-   SIZE_128MB : constant := 128 * SI_MB;
-   SIZE_256MB : constant := 256 * SI_MB;
-   SIZE_512MB : constant := 512 * SI_MB;
+   --  Common chunk sizes (converted from typed constants)
+   SIZE_1KB : constant Long_Long_Integer := Long_Long_Integer (1 * SI_KB);
+   SIZE_4KB : constant Long_Long_Integer := Long_Long_Integer (4 * SI_KB);
+   SIZE_64KB : constant Long_Long_Integer := Long_Long_Integer (64 * SI_KB);
+   SIZE_256KB : constant Long_Long_Integer := Long_Long_Integer (256 * SI_KB);
+   SIZE_1MB : constant Long_Long_Integer := Long_Long_Integer (1 * SI_MB);
+   SIZE_4MB : constant Long_Long_Integer := Long_Long_Integer (4 * SI_MB);
+   SIZE_8MB : constant Long_Long_Integer := Long_Long_Integer (8 * SI_MB);
+   SIZE_16MB : constant Long_Long_Integer := Long_Long_Integer (16 * SI_MB);
+   SIZE_32MB : constant Long_Long_Integer := Long_Long_Integer (32 * SI_MB);
+   SIZE_64MB : constant Long_Long_Integer := Long_Long_Integer (64 * SI_MB);
+   SIZE_128MB : constant Long_Long_Integer := Long_Long_Integer (128 * SI_MB);
+   SIZE_256MB : constant Long_Long_Integer := Long_Long_Integer (256 * SI_MB);
+   SIZE_512MB : constant Long_Long_Integer := Long_Long_Integer (512 * SI_MB);
 
    --  Chunk size type
    type Chunk_Size_Type is private
@@ -73,19 +75,19 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    function From_KB (KB : Natural) return Chunk_Size_Type
    with
      Pre =>
-       Long_Long_Integer (KB) * SI_KB >= MIN_CHUNK_SIZE
-       and Long_Long_Integer (KB) * SI_KB <= MAX_CHUNK_SIZE,
+       Long_Long_Integer (KB) * Long_Long_Integer (SI_KB) >= MIN_CHUNK_SIZE
+       and Long_Long_Integer (KB) * Long_Long_Integer (SI_KB) <= MAX_CHUNK_SIZE,
      Post =>
-       Value (From_KB'Result) = Long_Long_Integer (KB) * SI_KB
+       Value (From_KB'Result) = Long_Long_Integer (KB) * Long_Long_Integer (SI_KB)
        and Is_Valid (From_KB'Result);
 
    function From_MB (MB : Natural) return Chunk_Size_Type
    with
      Pre =>
-       Long_Long_Integer (MB) * SI_MB >= MIN_CHUNK_SIZE
-       and Long_Long_Integer (MB) * SI_MB <= MAX_CHUNK_SIZE,
+       Long_Long_Integer (MB) * Long_Long_Integer (SI_MB) >= MIN_CHUNK_SIZE
+       and Long_Long_Integer (MB) * Long_Long_Integer (SI_MB) <= MAX_CHUNK_SIZE,
      Post =>
-       Value (From_MB'Result) = Long_Long_Integer (MB) * SI_MB
+       Value (From_MB'Result) = Long_Long_Integer (MB) * Long_Long_Integer (SI_MB)
        and Is_Valid (From_MB'Result);
 
    --  Named size constructors

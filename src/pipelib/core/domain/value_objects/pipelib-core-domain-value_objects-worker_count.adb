@@ -7,15 +7,14 @@
 pragma Ada_2022;
 
 with System.Multiprocessors;
-with Abohlib.Core.Domain.Constants.Bytes;
 
 package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
 
-   --  Local constants from Abohlib
-   SI_KB : constant := Abohlib.Core.Domain.Constants.Bytes.SI_KB;
-   SI_MB : constant := Abohlib.Core.Domain.Constants.Bytes.SI_MB;
-   SI_GB : constant := Abohlib.Core.Domain.Constants.Bytes.SI_GB;
-   SI_TB : constant := Abohlib.Core.Domain.Constants.Bytes.SI_TB;
+   --  Local constants (literals matching abohlib SI values)
+   SI_KB : constant := 1_000;
+   SI_MB : constant := 1_000_000;
+   SI_GB : constant := 1_000_000_000;
+   SI_TB : constant := 1_000_000_000_000;
    pragma Unreferenced (SI_GB, SI_TB);  -- Keep for future use
 
    -- ----------

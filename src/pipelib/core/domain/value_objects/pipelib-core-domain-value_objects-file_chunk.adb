@@ -28,23 +28,22 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
 
    --  Generate a simple UUID v4
    function Generate_UUID return String is
-      Result    : String (1 .. 36) := "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx";
-      Hex_Chars : constant String := "0123456789abcdef";
+      Result    : String (1 .. UUID_Template'Length) := UUID_Template;
    begin
       for I in Result'Range loop
          case Result (I) is
-            when 'x' =>
+            when UUID_X_Char =>
                Result (I) :=
-                 Hex_Chars
+                 UUID_Hex_Chars
                    (Natural (Random_Byte.Random (Random_Gen)) mod 16 + 1);
 
-            when 'y' =>
+            when UUID_Y_Char =>
                Result (I) :=
-                 Hex_Chars
+                 UUID_Hex_Chars
                    ((Natural (Random_Byte.Random (Random_Gen)) mod 4) + 8 + 1);
 
             when others =>
-               null; -- Keep dashes and '4'
+               null; -- Keep dashes and version character
          end case;
       end loop;
       return Result;
@@ -55,8 +54,8 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- ----------
 
    function Create
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : Stream_Element_Array;
       Is_Final        : Boolean) return File_Chunk_Type is
    begin
@@ -96,8 +95,8 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- ----------------------
 
    function Create_From_Access
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : not null Stream_Element_Array_Access;
       Is_Final        : Boolean) return File_Chunk_Type is
    begin
@@ -134,8 +133,8 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
    -- ------------------------
 
    function Create_With_Checksum
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : Stream_Element_Array;
       Checksum        : String;
       Is_Final        : Boolean) return File_Chunk_Type
@@ -393,12 +392,12 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
       return To_String (Chunk.Id);
    end Id;
 
-   function Sequence_Number (Chunk : File_Chunk_Type) return Natural is
+   function Sequence_Number (Chunk : File_Chunk_Type) return Sequence_Number_Type is
    begin
       return Chunk.Sequence_Number;
    end Sequence_Number;
 
-   function Offset (Chunk : File_Chunk_Type) return Long_Long_Integer is
+   function Offset (Chunk : File_Chunk_Type) return File_Position_Type is
    begin
       return Chunk.Offset;
    end Offset;

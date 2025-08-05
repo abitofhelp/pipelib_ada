@@ -64,10 +64,12 @@ with Ada.Finalization;
 with Ada.Strings.Unbounded;                        use Ada.Strings.Unbounded;
 with Pipelib.Core.Domain.Value_Objects.Chunk_Size;
 use Pipelib.Core.Domain.Value_Objects.Chunk_Size;
-with Abohlib.Core.Domain.Constants.Bytes;
+with Pipelib.Core.Domain.Constants;
 with Abohlib.Core.Domain.Result;
 
 package Pipelib.Core.Domain.Value_Objects.File_Chunk is
+
+   use Pipelib.Core.Domain.Constants;
 
    --  Forward declaration
    --  Note: We keep this as a non-limited controlled type to support
@@ -80,8 +82,7 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    type Stream_Element_Array_Access is access Stream_Element_Array;
 
    --  Maximum chunk data size (512MB max)
-   MAX_CHUNK_DATA_SIZE : constant :=
-     512 * Abohlib.Core.Domain.Constants.Bytes.SI_MB;
+   MAX_CHUNK_DATA_SIZE : constant := 512 * 1_000_000;
 
    --  Exception-based error handling (temporary until Result pattern can be properly implemented)
    File_Chunk_Error : exception;
@@ -160,8 +161,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  ### Thread Safety
    --  This function is thread-safe and can be called concurrently from multiple tasks.
    function Create
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : Stream_Element_Array;
       Is_Final        : Boolean) return File_Chunk_Type
    with
@@ -224,8 +225,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  This constructor is faster than `Create` followed by `Calculate_And_Set_Checksum`
    --  because it skips the SHA-256 calculation, which can be expensive for large chunks.
    function Create_With_Checksum
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : Stream_Element_Array;
       Checksum        : String;
       Is_Final        : Boolean) return File_Chunk_Type
@@ -317,8 +318,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  Compare this to `Create()` which is O(n) where n is the data size.
    --  For a 1MB chunk, this can be 1000x faster than copying.
    function Create_From_Access
-     (Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+     (Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Data            : not null Stream_Element_Array_Access;
       Is_Final        : Boolean) return File_Chunk_Type
    with
@@ -386,7 +387,7 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --     Put_Line ("This is the first chunk");
    --  end if;
    --  ```
-   function Sequence_Number (Chunk : File_Chunk_Type) return Natural
+   function Sequence_Number (Chunk : File_Chunk_Type) return Sequence_Number_Type
    with
      Pre => not Is_Empty (Chunk),
      Post => Sequence_Number'Result >= 0,
@@ -406,7 +407,7 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  ```ada
    --  Put_Line ("Chunk starts at byte position:" & Offset (Chunk)'Image);
    --  ```
-   function Offset (Chunk : File_Chunk_Type) return Long_Long_Integer
+   function Offset (Chunk : File_Chunk_Type) return File_Position_Type
    with Pre => not Is_Empty (Chunk), Post => Offset'Result >= 0, Inline;
 
    --  ### Size Information Access
@@ -667,7 +668,7 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
      Dynamic_Predicate =>
        Valid_Chunk_Size > 0 and Valid_Chunk_Size <= MAX_CHUNK_DATA_SIZE;
 
-   subtype Valid_Offset is Long_Long_Integer
+   subtype Valid_Offset is File_Position_Type
    with Dynamic_Predicate => Valid_Offset >= 0;
 
    --  Error messages
@@ -695,8 +696,8 @@ private
    --  5. The type is task-safe for read operations only
    type File_Chunk_Type is new Ada.Finalization.Controlled with record
       Id              : Unbounded_String;        -- ULID as string
-      Sequence_Number : Natural;
-      Offset          : Long_Long_Integer;
+      Sequence_Number : Sequence_Number_Type;
+      Offset          : File_Position_Type;
       Size            : Chunk_Size.Chunk_Size_Type;
       Data            : Stream_Element_Array_Access;
       Checksum        : Unbounded_String;        -- Empty if no checksum

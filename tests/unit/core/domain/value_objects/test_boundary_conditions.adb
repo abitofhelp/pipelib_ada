@@ -13,6 +13,8 @@ with Pipelib.Core.Domain.Value_Objects.File_Chunk; use Pipelib.Core.Domain.Value
 with Pipelib.Core.Domain.Value_Objects.Stage_Order; use Pipelib.Core.Domain.Value_Objects.Stage_Order;
 with Pipelib.Core.Domain.Value_Objects.Algorithm; use Pipelib.Core.Domain.Value_Objects.Algorithm;
 with Abohlib.Core.Domain.Constants.Bytes; use Abohlib.Core.Domain.Constants.Bytes;
+with Abohlib.Core.Domain.Types; use Abohlib.Core.Domain.Types;
+with Pipelib.Core.Domain.Constants; use Pipelib.Core.Domain.Constants;
 
 package body Test_Boundary_Conditions is
 
@@ -26,12 +28,13 @@ package body Test_Boundary_Conditions is
    begin
       -- Test exact minimum boundary
       begin
-         Min_Size := Create (MIN_CHUNK_SIZE);  -- Should succeed
-         if Value (Min_Size) /= MIN_CHUNK_SIZE then
+         Min_Size := Create (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MIN_CHUNK_SIZE);  -- Should succeed
+         if Value (Min_Size) /= Pipelib.Core.Domain.Value_Objects.Chunk_Size.MIN_CHUNK_SIZE then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Minimum chunk size incorrect"),
-               Details     => To_Unbounded_String ("Expected " & MIN_CHUNK_SIZE'Image),
+               Details     => To_Unbounded_String ("Expected " &
+                  Pipelib.Core.Domain.Value_Objects.Chunk_Size.MIN_CHUNK_SIZE'Image),
                Line_Number => 0,
                Test_Name   => To_Unbounded_String ("Test_Chunk_Size_Boundaries")
             ));
@@ -49,12 +52,13 @@ package body Test_Boundary_Conditions is
 
       -- Test exact maximum boundary
       begin
-         Max_Size := Create (MAX_CHUNK_SIZE);  -- Should succeed
-         if Value (Max_Size) /= MAX_CHUNK_SIZE then
+         Max_Size := Create (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE);  -- Should succeed
+         if Value (Max_Size) /= Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Maximum chunk size incorrect"),
-               Details     => To_Unbounded_String ("Expected " & MAX_CHUNK_SIZE'Image),
+               Details     => To_Unbounded_String ("Expected " &
+                  Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE'Image),
                Line_Number => 0,
                Test_Name   => To_Unbounded_String ("Test_Chunk_Size_Boundaries")
             ));
@@ -115,7 +119,7 @@ package body Test_Boundary_Conditions is
       begin
          -- Minimum valid KB value (MIN_CHUNK_SIZE = 1KB)
          KB_Size := From_KB (1);
-         if Value (KB_Size) /= SI_KB then
+         if Value (KB_Size) /= Long_Long_Integer (SI_KB) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_KB minimum edge case failed"),
@@ -127,10 +131,10 @@ package body Test_Boundary_Conditions is
 
          -- Maximum valid KB value
          declare
-            Max_KB : constant Natural := Natural (MAX_CHUNK_SIZE / SI_KB);
+            Max_KB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / Long_Long_Integer (SI_KB));
          begin
             KB_Size := From_KB (Max_KB);
-            if Value (KB_Size) /= Long_Long_Integer (Max_KB) * SI_KB then
+            if Value (KB_Size) /= Long_Long_Integer (Max_KB) * Long_Long_Integer (SI_KB) then
                return Void_Result.Err (Test_Error'(
                   Kind        => Assertion_Failed,
                   Message     => To_Unbounded_String ("From_KB maximum edge case failed"),
@@ -148,7 +152,7 @@ package body Test_Boundary_Conditions is
       begin
          -- Minimum valid MB value
          MB_Size := From_MB (1);
-         if Value (MB_Size) /= SI_MB then
+         if Value (MB_Size) /= Long_Long_Integer (SI_MB) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_MB minimum edge case failed"),
@@ -160,10 +164,10 @@ package body Test_Boundary_Conditions is
 
          -- Maximum valid MB value
          declare
-            Max_MB : constant Natural := Natural (MAX_CHUNK_SIZE / SI_MB);
+            Max_MB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / Long_Long_Integer (SI_MB));
          begin
             MB_Size := From_MB (Max_MB);
-            if Value (MB_Size) /= Long_Long_Integer (Max_MB) * SI_MB then
+            if Value (MB_Size) /= Long_Long_Integer (Max_MB) * Long_Long_Integer (SI_MB) then
                return Void_Result.Err (Test_Error'(
                   Kind        => Assertion_Failed,
                   Message     => To_Unbounded_String ("From_MB maximum edge case failed"),
@@ -343,13 +347,13 @@ package body Test_Boundary_Conditions is
       -- Test zero offset
       declare
          Chunk : constant File_Chunk_Type := Create (
-            Sequence_Number => 0,
-            Offset => 0,
+            Sequence_Number => Pipelib.Core.Domain.Constants.Sequence_Number_Type (0),
+            Offset => Pipelib.Core.Domain.Constants.File_Position_Type (0),
             Data => Test_Data,
             Is_Final => False
          );
       begin
-         if Offset (Chunk) /= 0 then
+         if Offset (Chunk) /= Pipelib.Core.Domain.Constants.File_Position_Type (0) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Zero offset incorrect"),
@@ -363,13 +367,13 @@ package body Test_Boundary_Conditions is
       -- Test maximum positive offset
       declare
          Chunk : constant File_Chunk_Type := Create (
-            Sequence_Number => 0,
-            Offset => Long_Long_Integer'Last,
+            Sequence_Number => Pipelib.Core.Domain.Constants.Sequence_Number_Type (0),
+            Offset => Pipelib.Core.Domain.Constants.File_Position_Type (1_000_000_000),
             Data => Test_Data,
             Is_Final => False
          );
       begin
-         if Offset (Chunk) /= Long_Long_Integer'Last then
+         if Offset (Chunk) /= Pipelib.Core.Domain.Constants.File_Position_Type (1_000_000_000) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Maximum offset incorrect"),
@@ -411,13 +415,13 @@ package body Test_Boundary_Conditions is
       -- Test zero sequence number
       declare
          Chunk : constant File_Chunk_Type := Create (
-            Sequence_Number => 0,
-            Offset => 0,
+            Sequence_Number => Pipelib.Core.Domain.Constants.Sequence_Number_Type (0),
+            Offset => Pipelib.Core.Domain.Constants.File_Position_Type (0),
             Data => Test_Data,
             Is_Final => False
          );
       begin
-         if Sequence_Number (Chunk) /= 0 then
+         if Sequence_Number (Chunk) /= Pipelib.Core.Domain.Constants.Sequence_Number_Type (0) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Zero sequence number incorrect"),
@@ -431,13 +435,13 @@ package body Test_Boundary_Conditions is
       -- Test maximum sequence number
       declare
          Chunk : constant File_Chunk_Type := Create (
-            Sequence_Number => Natural'Last,
-            Offset => 0,
+            Sequence_Number => Pipelib.Core.Domain.Constants.Sequence_Number_Type (Natural'Last),
+            Offset => Pipelib.Core.Domain.Constants.File_Position_Type (0),
             Data => Test_Data,
             Is_Final => False
          );
       begin
-         if Sequence_Number (Chunk) /= Natural'Last then
+         if Sequence_Number (Chunk) /= Pipelib.Core.Domain.Constants.Sequence_Number_Type (Natural'Last) then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("Maximum sequence number incorrect"),

@@ -26,10 +26,10 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
    --  Convenience constructors (expression functions for performance)
    function From_KB (KB : Natural) return Chunk_Size_Type
-   is ((Bytes => Long_Long_Integer (KB) * SI_KB));
+   is ((Bytes => Long_Long_Integer (KB) * Long_Long_Integer (SI_KB)));
 
    function From_MB (MB : Natural) return Chunk_Size_Type
-   is ((Bytes => Long_Long_Integer (MB) * SI_MB));
+   is ((Bytes => Long_Long_Integer (MB) * Long_Long_Integer (SI_MB)));
 
    --  Named size constructors (expression functions for performance)
    function Small return Chunk_Size_Type
@@ -47,16 +47,16 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    is
       Chunk_Bytes : Long_Long_Integer;
    begin
-      if Total_Size < 10 * SI_MB then
+      if Total_Size < Long_Long_Integer (10 * SI_MB) then
          --  Small files: 256KB chunks
          Chunk_Bytes := SIZE_256KB;
-      elsif Total_Size < 100 * SI_MB then
+      elsif Total_Size < Long_Long_Integer (100 * SI_MB) then
          --  Medium files: 4MB chunks
          Chunk_Bytes := SIZE_4MB;
-      elsif Total_Size < SI_GB then
+      elsif Total_Size < Long_Long_Integer (SI_GB) then
          --  Large files: 16MB chunks
          Chunk_Bytes := SIZE_16MB;
-      elsif Total_Size < 10 * SI_GB then
+      elsif Total_Size < Long_Long_Integer (10 * SI_GB) then
          --  Very large files: 64MB chunks
          Chunk_Bytes := SIZE_64MB;
       else

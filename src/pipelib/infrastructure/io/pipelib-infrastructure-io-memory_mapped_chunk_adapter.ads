@@ -84,6 +84,7 @@ with Pipelib.Core.Domain.Value_Objects.File_Chunk;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk.Vectors;
 with Abohlib.Core.Domain.Result;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
+with Pipelib.Core.Domain.Constants;
 
 package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
 
@@ -137,7 +138,9 @@ package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    --  );
    --  ```
    type Chunk_Config is record
-      Default_Chunk_Size    : Positive := 64 * 1024; -- 64KB default
+      Default_Chunk_Size    : Positive :=
+         Pipelib.Core.Domain.Constants.To_Natural
+            (Pipelib.Core.Domain.Constants.Default_Chunk_Size);
       Calculate_Checksums   : Boolean := True;
       Use_Sequential_Access : Boolean := True; -- Hint for OS optimization
    end record;
@@ -264,7 +267,7 @@ package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    --  Create a single chunk from memory-mapped file region
    function Create_Single_Chunk_From_Memory_Map
      (Map                : Memory_Mapped_File_Interface'Class;
-      Sequence_Number    : Natural;
+      Sequence_Number    : Pipelib.Core.Domain.Constants.Sequence_Number_Type;
       Offset             : Storage_Count;
       Length             : Storage_Count;
       Is_Final           : Boolean;
@@ -284,12 +287,13 @@ package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    with
      Pre => File_Size > 0,
      Post =>
-       Calculate_Optimal_Chunk_Size'Result >= 1024
-       and then  -- Min 1KB
-                            Calculate_Optimal_Chunk_Size'Result
-                            <= Integer (File_Size)
+       Calculate_Optimal_Chunk_Size'Result >=
+          Pipelib.Core.Domain.Constants.To_Natural
+             (Pipelib.Core.Domain.Constants.Min_Chunk_Size)
+       and then Calculate_Optimal_Chunk_Size'Result <= Integer (File_Size)
        and then Calculate_Optimal_Chunk_Size'Result
-                <= 512 * 1024 * 1024;  -- Max 512MB
+                <= Pipelib.Core.Domain.Constants.To_Natural
+                     (Pipelib.Core.Domain.Constants.Max_Chunk_Size);
    --  Calculates optimal chunk size based on file size and available memory
    --  Uses adaptive algorithms similar to the Rust implementation
 
@@ -301,9 +305,9 @@ package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
    with
      Pre => File_Size > 0,
      Post =>
-       (if File_Size < 100 * 1024 * 1024
+       (if File_Size < Storage_Count (Pipelib.Core.Domain.Constants.Min_Memory_Map_Size)
         then not Should_Use_Memory_Mapping_For_File'Result)
-       and then (if File_Size > 1024 * 1024 * 1024
+       and then (if File_Size > Storage_Count (Pipelib.Core.Domain.Constants.Max_Memory_Map_Size)
                  then not Should_Use_Memory_Mapping_For_File'Result);
    --  Determines if memory mapping is beneficial for the given file size
 

@@ -89,16 +89,21 @@
 
 pragma Ada_2022;
 
+with Pipelib.Core.Domain.Constants;
+
 package Pipelib.Core.Domain.Services.Progress_Tracker is
+
+   use Pipelib.Core.Domain.Constants;
 
    --  ## Progress State Information
    --
    --  Domain value object representing the current state of pipeline progress.
    --  Contains only business state without any presentation concerns.
+   --  Uses distinct types to prevent mixing different kinds of progress counts.
    type Progress_State is record
-      Chunks_Read      : Natural := 0;
-      Chunks_Processed : Natural := 0;
-      Chunks_Written   : Natural := 0;
+      Chunks_Read      : Read_Count_Type := 0;
+      Chunks_Processed : Processed_Count_Type := 0;
+      Chunks_Written   : Written_Count_Type := 0;
       Read_Complete    : Boolean := False;
       Process_Complete : Boolean := False;
       Write_Complete   : Boolean := False;
@@ -145,7 +150,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --     end loop;
       --  end Reader_Worker;
       --  ```
-      procedure Update_Read_Count (Count : Natural)
+      procedure Update_Read_Count (Count : Read_Count_Type)
       with Pre => Count >= 0;
 
       --  ### Update Processing Progress
@@ -175,7 +180,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --     end loop;
       --  end Processing_Worker;
       --  ```
-      procedure Update_Processed_Count (Count : Natural)
+      procedure Update_Processed_Count (Count : Processed_Count_Type)
       with Pre => Count >= 0;
 
       --  ### Update Write Progress
@@ -210,7 +215,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --     end loop;
       --  end Writer_Worker;
       --  ```
-      procedure Update_Written_Count (Count : Natural)
+      procedure Update_Written_Count (Count : Written_Count_Type)
       with Pre => Count >= 0;
 
       --  ## Stage Completion Markers
@@ -311,7 +316,10 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --     end loop;
       --  end Progress_Monitor;
       --  ```
-      procedure Get_Progress (Read, Processed, Written : out Natural)
+      procedure Get_Progress
+        (Read : out Read_Count_Type;
+         Processed : out Processed_Count_Type;
+         Written : out Written_Count_Type)
       with Post => Read >= 0 and Processed >= 0 and Written >= 0;
 
       --  ## Stage Completion Queries
@@ -390,9 +398,9 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       function Get_Progress_State return Progress_State;
 
    private
-      Chunks_Read : Natural := 0;
-      Chunks_Processed : Natural := 0;
-      Chunks_Written : Natural := 0;
+      Chunks_Read : Read_Count_Type := 0;
+      Chunks_Processed : Processed_Count_Type := 0;
+      Chunks_Written : Written_Count_Type := 0;
       Read_Complete : Boolean := False;
       Process_Complete : Boolean := False;
       Write_Complete : Boolean := False;

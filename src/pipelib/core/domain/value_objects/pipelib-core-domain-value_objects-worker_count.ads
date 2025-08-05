@@ -9,17 +9,20 @@
 
 pragma Ada_2022;
 
+with Pipelib.Core.Domain.Constants;
+
 package Pipelib.Core.Domain.Value_Objects.Worker_Count is
 
    --  Type representing worker count with constraints
-   subtype Worker_Count_Type is Positive range 1 .. 256;
+   subtype Worker_Count_Type is Positive range 1 .. Positive (Pipelib.Core.Domain.Constants.Max_Worker_Count);
 
    --  Default worker count (single-threaded)
    Default_Worker_Count : constant Worker_Count_Type := 1;
 
    --  Constructor with validation
    function Create (Value : Natural) return Worker_Count_Type
-   with Pre => Value > 0 and then Value <= 256, Post => Create'Result = Value;
+   with Pre => Value > 0 and then Value <= Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count),
+        Post => Create'Result = Value;
 
    --  Get optimal worker count based on system
    function Get_Optimal_Count return Worker_Count_Type;
@@ -28,10 +31,10 @@ package Pipelib.Core.Domain.Value_Objects.Worker_Count is
    function Get_CPU_Based_Count
      (Multiplier : Positive := 1) return Worker_Count_Type
    with
-     Pre => Multiplier <= 32,
+     Pre => Multiplier <= Natural (Pipelib.Core.Domain.Constants.Max_Worker_Multiplier),
      Post =>
        Get_CPU_Based_Count'Result >= 1
-       and then Get_CPU_Based_Count'Result <= 256;
+       and then Get_CPU_Based_Count'Result <= Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count);
 
    --  Get optimal worker count based on file size (empirically optimized)
    function Optimal_For_File_Size
@@ -39,7 +42,7 @@ package Pipelib.Core.Domain.Value_Objects.Worker_Count is
    with
      Post =>
        Optimal_For_File_Size'Result >= 1
-       and then Optimal_For_File_Size'Result <= 256;
+       and then Optimal_For_File_Size'Result <= Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count);
 
    --  Get optimal worker count based on processing type
    function Optimal_For_Processing_Type
@@ -50,7 +53,7 @@ package Pipelib.Core.Domain.Value_Objects.Worker_Count is
      Pre => Available_CPUs > 0,
      Post =>
        Optimal_For_Processing_Type'Result >= 1
-       and then Optimal_For_Processing_Type'Result <= 256;
+       and then Optimal_For_Processing_Type'Result <= Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count);
 
    --  Image function for debugging
    function Image (Count : Worker_Count_Type) return String

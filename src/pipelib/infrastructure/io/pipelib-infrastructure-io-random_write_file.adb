@@ -10,7 +10,6 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
 with Ada.Unchecked_Deallocation;
-with Abohlib.Core.Domain.Constants.Bytes;
 
 package body Pipelib.Infrastructure.IO.Random_Write_File is
 
@@ -18,8 +17,8 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
    use Abohlib.Core.Domain.Value_Objects.File_Path;
    use Pipelib.Core.Domain.Value_Objects.File_Chunk;
 
-   --  Local constants
-   SI_MB : constant := Abohlib.Core.Domain.Constants.Bytes.SI_MB;
+   --  Local constants (literal matching abohlib SI value)
+   SI_MB : constant := 1_000_000;
    pragma Unreferenced (SI_MB);
 
    -- -----------

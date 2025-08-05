@@ -10,17 +10,17 @@ package body Pipelib.Core.Domain.Services.Progress_Tracker is
 
    protected body Progress_Tracker_Type is
 
-      procedure Update_Read_Count (Count : Natural) is
+      procedure Update_Read_Count (Count : Read_Count_Type) is
       begin
          Chunks_Read := Count;
       end Update_Read_Count;
 
-      procedure Update_Processed_Count (Count : Natural) is
+      procedure Update_Processed_Count (Count : Processed_Count_Type) is
       begin
          Chunks_Processed := Count;
       end Update_Processed_Count;
 
-      procedure Update_Written_Count (Count : Natural) is
+      procedure Update_Written_Count (Count : Written_Count_Type) is
       begin
          Chunks_Written := Count;
       end Update_Written_Count;
@@ -40,7 +40,10 @@ package body Pipelib.Core.Domain.Services.Progress_Tracker is
          Write_Complete := True;
       end Mark_Writing_Complete;
 
-      procedure Get_Progress (Read, Processed, Written : out Natural) is
+      procedure Get_Progress
+        (Read : out Read_Count_Type;
+         Processed : out Processed_Count_Type;
+         Written : out Written_Count_Type) is
       begin
          Read := Chunks_Read;
          Processed := Chunks_Processed;

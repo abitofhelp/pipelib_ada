@@ -102,6 +102,7 @@ The design follows these core principles:
 - **Value Objects**: Immutable data containers with validation logic
 - **Entities**: Objects with identity and lifecycle management
 - **Domain Services**: Complex business logic that doesn't belong to entities
+- **Constants**: Centralized configuration values and thresholds in `Pipelib.Core.Domain.Constants`
 
 #### 2.2.2 Application Layer
 - **Use Cases**: Orchestrates domain objects to fulfill application requirements
@@ -178,7 +179,8 @@ with Type_Invariant =>
 -- Dynamic Predicates: Subtype constraints
 subtype Valid_Chunk_Size is Positive
 with Dynamic_Predicate =>
-  Valid_Chunk_Size >= 1024 and Valid_Chunk_Size <= 512 * 1024 * 1024;
+  Valid_Chunk_Size >= Min_Chunk_Size and Valid_Chunk_Size <= Max_Chunk_Size;
+  -- Where Min_Chunk_Size = 1KB and Max_Chunk_Size = 512MB from Domain.Constants
 ```
 
 #### 3.2.2 Contract Patterns
@@ -427,8 +429,9 @@ function Should_Use_Memory_Mapping_For_File
   (File_Size : Storage_Count;
    Available_Memory : Storage_Count := 0) return Boolean
 is
-   Min_Mapping_Size : constant Storage_Count := 100 * 1024 * 1024; -- 100MB
-   Max_Mapping_Size : constant Storage_Count := 1024 * 1024 * 1024; -- 1GB
+   -- Uses constants from Pipelib.Core.Domain.Constants:
+   -- Min_Memory_Map_Size = 100MB
+   -- Max_Memory_Map_Size = 1GB
 
    Available : Storage_Count := Available_Memory;
 begin
@@ -464,6 +467,76 @@ begin
    return Stream_Element_Array_Access (To_Access (Target_Address));
 end Create_Stream_Array_Access_From_Memory;
 ```
+
+### 4.5 Domain Constants Package
+
+#### 4.5.1 Purpose
+Centralizes all configuration values, thresholds, and constants used throughout the pipeline system. This eliminates magic numbers and provides a single source of truth for system-wide values.
+
+#### 4.5.2 Design Principles
+- **Centralization**: All constants in one location for easy maintenance
+- **Type Safety**: Uses Ada's strong typing for compile-time validation
+- **Documentation**: Each constant includes clear comments explaining its purpose
+- **Categorization**: Constants grouped by their functional area
+
+#### 4.5.3 Constant Categories
+
+**File Size Thresholds**
+```ada
+-- Determines when to use different processing strategies
+Small_File_Threshold  : constant Natural := 10 * MB;     -- 10MB
+Medium_File_Threshold : constant Natural := 100 * MB;    -- 100MB
+Large_File_Threshold  : constant Natural := GB;          -- 1GB
+```
+
+**Chunk Size Configuration**
+```ada
+-- Adaptive chunk sizing for optimal performance
+Small_Chunk_Size  : constant Natural := 64 * KB;    -- For small files
+Medium_Chunk_Size : constant Natural := MB;         -- For medium files
+Large_Chunk_Size  : constant Natural := 4 * MB;     -- For large files
+Huge_Chunk_Size   : constant Natural := 16 * MB;    -- For very large files
+
+-- Boundaries for chunk size validation
+Min_Chunk_Size : constant Natural := KB;            -- 1KB minimum
+Max_Chunk_Size : constant Natural := 512 * MB;     -- 512MB maximum
+```
+
+**Worker Thread Limits**
+```ada
+-- Controls parallel processing capabilities
+Max_Worker_Count       : constant Natural := 256;   -- System maximum
+Default_Worker_Count   : constant Natural := 4;     -- Conservative default
+Max_Worker_Multiplier  : constant Natural := 32;    -- For CPU-based scaling
+```
+
+**Memory Mapping Thresholds**
+```ada
+-- Determines when memory mapping is beneficial
+Min_Memory_Map_Size : constant Natural := 100 * MB;  -- Below this, use regular I/O
+Max_Memory_Map_Size : constant Natural := GB;        -- Above this, risk address space
+```
+
+#### 4.5.4 Usage Example
+```ada
+-- In application code
+with Pipelib.Core.Domain.Constants;
+
+-- Adaptive chunk sizing based on file size
+if File_Size <= Storage_Count (Constants.Small_File_Threshold) then
+   return Constants.Small_Chunk_Size;
+elsif File_Size <= Storage_Count (Constants.Medium_File_Threshold) then
+   return Constants.Medium_Chunk_Size;
+else
+   return Constants.Large_Chunk_Size;
+end if;
+```
+
+#### 4.5.5 Benefits
+- **Maintainability**: Change values in one place affects entire system
+- **Clarity**: Named constants are self-documenting
+- **Consistency**: Ensures same values used throughout codebase
+- **Testing**: Easy to adjust for different test scenarios
 
 ---
 
