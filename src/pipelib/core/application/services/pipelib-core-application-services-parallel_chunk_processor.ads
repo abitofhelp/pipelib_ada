@@ -211,7 +211,7 @@ is
    --  ```ada
    --  -- CPU-intensive processing (compression, encryption)
    --  declare
-   --     Core_Count : constant Positive := Natural (System.Multiprocessors.Number_Of_CPUs);
+   --     Core_Count : constant Worker_Count_Value_Type := Worker_Count_Value_Type (System.Multiprocessors.Number_Of_CPUs);
    --     Processor : constant Parallel_Processor_Access := Create (
    --        Worker_Count => Core_Count,
    --        Output_File => Output_File,

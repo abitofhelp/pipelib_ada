@@ -145,8 +145,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --     Read_File_Data (Buffer, Last);
    --
    --     Chunk : constant File_Chunk_Type := Create (
-   --        Sequence_Number => Chunk_Index,
-   --        Offset => Long_Long_Integer (Chunk_Index * 64_000),
+   --        Sequence_Number => Sequence_Number_Type (Chunk_Index),
+   --        Offset => File_Position_Type (Chunk_Index * 64_000),
    --        Data => Buffer (1 .. Last),
    --        Is_Final => Last < Buffer'Last
    --     );
@@ -401,7 +401,7 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  out of order.
    --
    --  #### Returns
-   --  Byte offset as Long_Long_Integer (supports files > 2GB)
+   --  Byte offset as File_Position_Type (supports files > 2GB)
    --
    --  #### Example
    --  ```ada

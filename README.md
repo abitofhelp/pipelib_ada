@@ -305,7 +305,7 @@ Pipeline.Add_Stage(My_Stage'Access, Order => 1);
 #### Chunk Management
 ```ada
 -- Create a chunk
-function Create(Number : Natural; Size : Chunk_Size_Type) return Chunk_Type;
+function Create(Number : Sequence_Number_Type; Size : Chunk_Size_Type) return Chunk_Type;
 
 -- Transfer data ownership (zero-copy)
 procedure Set_Data(Chunk : in out Chunk_Type; Data : in out Stream_Element_Array_Access);

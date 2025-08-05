@@ -13,7 +13,7 @@ skinparam class {
 
 ' Entities
 class "Chunk" <<entity>> {
-  -number: Natural
+  -number: Sequence_Number_Type
   -state: Chunk_State
   -data: Stream_Element_Array_Access
   -data_size: Natural
@@ -22,8 +22,8 @@ class "Chunk" <<entity>> {
   -original_size: Natural
   -retry_count: Natural
   --
-  +Create(number: Natural, size: Chunk_Size_Type): Chunk_Type
-  +Number(): Natural
+  +Create(number: Sequence_Number_Type, size: Chunk_Size_Type): Chunk_Type
+  +Number(): Sequence_Number_Type
   +State(): Chunk_State
   +Set_State(state: Chunk_State)
   +Data(): Stream_Element_Array_Access
@@ -53,20 +53,20 @@ enum "Chunk_State" {
 ' Value Objects
 class "File_Chunk" <<valueobject>> {
   -id: String
-  -sequence_number: Natural
-  -offset: Long_Long_Integer
+  -sequence_number: Sequence_Number_Type
+  -offset: File_Position_Type
   -size: Chunk_Size_Type
   -data: Stream_Element_Array_Access
   -checksum: String
   -is_final: Boolean
   -created_at: Time
   --
-  +Create(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array, is_final: Boolean): File_Chunk_Type
-  +Create_From_Access(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array_Access, is_final: Boolean): File_Chunk_Type
-  +Create_With_Checksum(seq: Natural, offset: Long_Long_Integer, data: Stream_Element_Array, checksum: String, is_final: Boolean): File_Chunk_Type
+  +Create(seq: Sequence_Number_Type, offset: File_Position_Type, data: Stream_Element_Array, is_final: Boolean): File_Chunk_Type
+  +Create_From_Access(seq: Sequence_Number_Type, offset: File_Position_Type, data: Stream_Element_Array_Access, is_final: Boolean): File_Chunk_Type
+  +Create_With_Checksum(seq: Sequence_Number_Type, offset: File_Position_Type, data: Stream_Element_Array, checksum: String, is_final: Boolean): File_Chunk_Type
   +Id(): String
-  +Sequence_Number(): Natural
-  +Offset(): Long_Long_Integer
+  +Sequence_Number(): Sequence_Number_Type
+  +Offset(): File_Position_Type
   +Size(): Chunk_Size_Type
   +Data(): Stream_Element_Array
   +Data_Access(): Stream_Element_Array_Access
@@ -122,28 +122,69 @@ class "Stage_Order" <<valueobject>> {
   +"="(left, right: Stage_Order_Type): Boolean
 }
 
+' Semantic Type Safety Value Objects
+class "Read_Count_Type" <<valueobject>> {
+  -value: Natural
+  --
+  +Create(value: Natural): Read_Count_Type
+  +Value(): Natural
+  +Increment(): Read_Count_Type
+}
+
+class "Processed_Count_Type" <<valueobject>> {
+  -value: Natural
+  --
+  +Create(value: Natural): Processed_Count_Type
+  +Value(): Natural
+  +Increment(): Processed_Count_Type
+}
+
+class "Written_Count_Type" <<valueobject>> {
+  -value: Natural
+  --
+  +Create(value: Natural): Written_Count_Type
+  +Value(): Natural
+  +Increment(): Written_Count_Type
+}
+
+class "File_Position_Type" <<valueobject>> {
+  -value: Long_Long_Integer
+  --
+  +Create(value: Long_Long_Integer): File_Position_Type
+  +Value(): Long_Long_Integer
+  +Add(offset: Natural): File_Position_Type
+}
+
+class "Sequence_Number_Type" <<valueobject>> {
+  -value: Natural
+  --
+  +Create(value: Natural): Sequence_Number_Type
+  +Value(): Natural
+  +Next(): Sequence_Number_Type
+}
+
 ' Domain Services
 class "Progress_Tracker" <<service>> {
-  -total_count: Long_Long_Integer
-  -read_count: Long_Long_Integer
-  -processed_count: Long_Long_Integer
-  -written_count: Long_Long_Integer
+  -total_count: Read_Count_Type
+  -read_count: Read_Count_Type
+  -processed_count: Processed_Count_Type
+  -written_count: Written_Count_Type
   -read_complete: Boolean
   -processing_complete: Boolean
   -writing_complete: Boolean
   --
-  +Create(total_items: Long_Long_Integer): Progress_Tracker_Type
-  +Update_Read_Count(increment: Long_Long_Integer)
-  +Update_Processed_Count(increment: Long_Long_Integer)
-  +Update_Written_Count(increment: Long_Long_Integer)
+  +Create(total_items: Read_Count_Type): Progress_Tracker_Type
+  +Update_Read_Count(increment: Read_Count_Type)
+  +Update_Processed_Count(increment: Processed_Count_Type)
+  +Update_Written_Count(increment: Written_Count_Type)
   +Mark_Read_Complete()
   +Mark_Processing_Complete()
   +Mark_Writing_Complete()
   +Get_Progress(): Progress_Info
-  +Total_Items(): Long_Long_Integer
-  +Read_Items(): Long_Long_Integer
-  +Processed_Items(): Long_Long_Integer
-  +Written_Items(): Long_Long_Integer
+  +Total_Items(): Read_Count_Type
+  +Read_Items(): Read_Count_Type
+  +Processed_Items(): Processed_Count_Type
+  +Written_Items(): Written_Count_Type
   +Is_Read_Complete(): Boolean
   +Is_Processing_Complete(): Boolean
   +Is_Writing_Complete(): Boolean
@@ -167,7 +208,7 @@ interface "Stage_Interface" <<interface>> {
 
 interface "File_Reader_Interface" <<interface>> {
   +Open(path: String): Result
-  +Read_Chunk(offset: Long_Long_Integer, size: Natural): Result
+  +Read_Chunk(offset: File_Position_Type, size: Natural): Result
   +Get_Size(): Result
   +Close(): Result
   +Is_Open(): Boolean
@@ -175,14 +216,14 @@ interface "File_Reader_Interface" <<interface>> {
 
 interface "File_Writer_Interface" <<interface>> {
   +Open(path: String): Result
-  +Write(data: Stream_Element_Array, offset: Long_Long_Integer): Result
+  +Write(data: Stream_Element_Array, offset: File_Position_Type): Result
   +Close(): Result
   +Is_Open(): Boolean
 }
 
 interface "Chunk_Adapter_Interface" <<interface>> {
-  +Read_Chunk(chunk_number: Natural, chunk_size: Chunk_Size_Type): Result
-  +Total_Chunks(): Natural
+  +Read_Chunk(chunk_number: Sequence_Number_Type, chunk_size: Chunk_Size_Type): Result
+  +Total_Chunks(): Read_Count_Type
   +File_Size(): Long_Long_Integer
 }
 
@@ -208,13 +249,19 @@ class "Generic_Pipeline_Stage" <<service>> {
 Chunk "1" *-- "1" File_Chunk : contains
 Chunk "1" -- "1" Chunk_Size : uses
 Chunk "1" -- "1" Chunk_State : has state
+Chunk "1" -- "1" Sequence_Number_Type : has number
 
 File_Chunk "1" -- "1" Chunk_Size : has size
+File_Chunk "1" -- "1" Sequence_Number_Type : has sequence
+File_Chunk "1" -- "1" File_Position_Type : has offset
 
 Generic_Pipeline_Stage "1" -- "1" Algorithm : uses
 Generic_Pipeline_Stage ..|> Stage_Interface : implements
 
 Progress_Tracker "1" -- "*" Chunk : tracks progress of
+Progress_Tracker "1" -- "1" Read_Count_Type : tracks read count
+Progress_Tracker "1" -- "1" Processed_Count_Type : tracks processed count
+Progress_Tracker "1" -- "1" Written_Count_Type : tracks written count
 
 ' Notes
 note right of Chunk
@@ -232,6 +279,13 @@ end note
 note bottom of Stage_Interface
   **Port**: Domain interface that
   infrastructure implements
+end note
+
+note top of Read_Count_Type
+  **Semantic Types**: Distinct types prevent
+  parameter confusion and enforce type safety
+  at compile time. Each type represents a
+  different concept in the domain.
 end note
 
 @enduml

@@ -141,7 +141,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --
       --  -- Parallel reader workers
       --  task body Reader_Worker is
-      --     Chunks_Read : Natural := 0;
+      --     Chunks_Read : Read_Count_Type := 0;
       --  begin
       --     loop
       --        Read_Next_Chunk (Chunk);
@@ -166,7 +166,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --  ```ada
       --  -- Integration with Parallel_Chunk_Processor
       --  task body Processing_Worker is
-      --     Processed_Count : Natural := 0;
+      --     Processed_Count : Processed_Count_Type := 0;
       --  begin
       --     loop
       --        Get_Chunk_From_Queue (Chunk);
@@ -203,7 +203,7 @@ package Pipelib.Core.Domain.Services.Progress_Tracker is
       --
       --  -- Parallel writing with Random_Write_File
       --  task body Writer_Worker is
-      --     Local_Written : Natural := 0;
+      --     Local_Written : Written_Count_Type := 0;
       --  begin
       --     loop
       --        Get_Processed_Chunk (Chunk);
