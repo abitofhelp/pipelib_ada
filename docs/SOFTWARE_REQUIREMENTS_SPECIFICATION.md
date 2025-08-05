@@ -361,6 +361,89 @@ with Post => Is_All_Complete'Result =
               Tracker.Get_Chunks_Processed = Tracker.Get_Total_Chunks);
 ```
 
+### 4.6 Type Safety (REQ-TYPE)
+
+#### 4.6.1 Semantic Type Distinction (REQ-TYPE-001)
+**Requirement:** The system shall use distinct types for different semantic concepts to prevent parameter confusion.
+
+**Type Categories:**
+- **Progress Tracking**: Separate types for read, processed, and written counts
+- **Position Management**: Distinct types for file positions and sequence numbers
+- **Performance Measurement**: Separate types for timing and throughput metrics
+- **Configuration Values**: Typed constants for sizes, counts, and thresholds
+
+**Implementation:**
+```ada
+-- Progress types prevent mixing different count semantics
+type Read_Count_Type is new Natural;
+type Processed_Count_Type is new Natural;
+type Written_Count_Type is new Natural;
+
+-- Position types prevent confusion between location concepts
+type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
+type Sequence_Number_Type is new Natural;
+```
+
+#### 4.6.2 Compile-Time Validation (REQ-TYPE-002)
+**Requirement:** The system shall enforce type safety at compile time to prevent runtime errors.
+
+**Validation Rules:**
+- Cannot assign between semantically different types without explicit conversion
+- Function parameters must use appropriate typed values
+- Type constraints must be enforced by the compiler
+- Conversion functions must be explicitly called when type mixing is intentional
+
+**Example Validation:**
+```ada
+-- This should cause a compile error (prevented parameter confusion)
+procedure Update_Progress_Invalid
+  (Read_Count : Read_Count_Type;
+   Written_Count : Written_Count_Type) is
+begin
+   -- if Read_Count > Written_Count then  -- COMPILE ERROR: different types
+   if Natural(Read_Count) > Natural(Written_Count) then  -- OK: explicit conversion
+      -- Handle case where more chunks read than written
+   end if;
+end Update_Progress_Invalid;
+```
+
+#### 4.6.3 Type-Safe Interfaces (REQ-TYPE-003)
+**Requirement:** All public interfaces shall use typed parameters to ensure semantic correctness.
+
+**Interface Requirements:**
+- DTOs must use typed fields for positions, counts, and measurements
+- Functions must accept typed parameters matching their semantic purpose
+- Return values must use appropriate types for their meaning
+- Conversion functions must be provided for interfacing with untyped external code
+
+**Example Interface:**
+```ada
+function Create_Process_Request
+  (File_Position   : File_Position_Type;        -- Cannot confuse with sequence
+   Sequence_Number : Sequence_Number_Type := 0; -- Cannot confuse with position
+   Data_Size       : Storage_Count;             -- Size information
+   Is_Final        : Boolean := False) return Process_Chunk_Request;
+```
+
+#### 4.6.4 Progress Type Safety (REQ-TYPE-004)
+**Requirement:** Progress tracking shall use distinct types to prevent accidental mixing of different progress measurements.
+
+**Progress Types:**
+- `Read_Count_Type`: Number of chunks read from input
+- `Processed_Count_Type`: Number of chunks that completed processing
+- `Written_Count_Type`: Number of chunks written to output
+- `Error_Count_Type`: Number of errors encountered
+
+**Type Safety Enforcement:**
+```ada
+protected type Progress_Tracker_Type is
+   procedure Update_Read_Count (New_Count : Read_Count_Type);      -- Only accepts read counts
+   procedure Update_Processed_Count (New_Count : Processed_Count_Type); -- Only accepts processed counts
+   procedure Update_Written_Count (New_Count : Written_Count_Type);   -- Only accepts written counts
+   -- Cannot accidentally pass wrong count type to wrong procedure
+end Progress_Tracker_Type;
+```
+
 ---
 
 ## 5. Non-Functional Requirements
@@ -591,7 +674,29 @@ with Post => Is_All_Complete'Result =
 - Controlled types for resource management
 - Ownership tracking for dynamic memory
 
-#### 7.3.2 Input Validation (REQ-SEC-002)
+#### 7.3.2 Type Safety (REQ-SEC-002)
+**Requirement:** The system shall implement comprehensive type safety to prevent parameter confusion and semantic errors.
+
+**Type Safety Mechanisms:**
+- Distinct types for different semantic concepts (file positions vs sequence numbers)
+- Separate typed progress counters (read, processed, written counts)
+- Typed performance measurements (processing times, throughput rates)
+- Compile-time validation of parameter usage
+- Type-safe conversion functions for interfacing with external code
+
+**Type Categories:**
+- **Progress Types**: `Read_Count_Type`, `Processed_Count_Type`, `Written_Count_Type`, `Error_Count_Type`
+- **Position Types**: `File_Position_Type`, `Sequence_Number_Type`, `Chunk_Index_Type`
+- **Measurement Types**: `Processing_Time_Ms_Type`, `Throughput_MBps_Type`
+- **Configuration Types**: `Worker_Count_Value_Type`, `Queue_Depth_Type`, `Byte_Count_Type`
+
+**Validation Requirements:**
+- All public interfaces must use typed parameters where applicable
+- No mixing of semantically different numeric types
+- Explicit conversion required for intentional type mixing
+- Type constraints must be enforced at compile time
+
+#### 7.3.3 Input Validation (REQ-SEC-003)
 **Requirement:** The system shall validate all external inputs.
 
 **Validation Requirements:**

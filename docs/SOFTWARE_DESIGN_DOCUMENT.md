@@ -13,10 +13,11 @@
 2. [System Architecture](#2-system-architecture)
 3. [Detailed Design](#3-detailed-design)
 4. [Component Design](#4-component-design)
-5. [Interface Design](#5-interface-design)
-6. [Data Design](#6-data-design)
-7. [Error Handling Design](#7-error-handling-design)
-8. [Concurrency Design](#8-concurrency-design)
+5. [Type Safety Design](#5-type-safety-design)
+6. [Interface Design](#6-interface-design)
+7. [Data Design](#7-data-design)
+8. [Error Handling Design](#8-error-handling-design)
+9. [Concurrency Design](#9-concurrency-design)
 
 ---
 
@@ -483,71 +484,288 @@ Centralizes all configuration values, thresholds, and constants used throughout 
 
 **File Size Thresholds**
 ```ada
--- Determines when to use different processing strategies
-Small_File_Threshold  : constant Natural := 10 * MB;     -- 10MB
-Medium_File_Threshold : constant Natural := 100 * MB;    -- 100MB
-Large_File_Threshold  : constant Natural := GB;          -- 1GB
+-- Uses typed byte counts for type safety
+Small_File_Threshold  : constant Byte_Count_Type := 10 * MB;     -- 10MB
+Medium_File_Threshold : constant Byte_Count_Type := 100 * MB;    -- 100MB
+Large_File_Threshold  : constant Byte_Count_Type := GB;          -- 1GB
 ```
 
 **Chunk Size Configuration**
 ```ada
--- Adaptive chunk sizing for optimal performance
-Small_Chunk_Size  : constant Natural := 64 * KB;    -- For small files
-Medium_Chunk_Size : constant Natural := MB;         -- For medium files
-Large_Chunk_Size  : constant Natural := 4 * MB;     -- For large files
-Huge_Chunk_Size   : constant Natural := 16 * MB;    -- For very large files
+-- All chunk sizes use typed byte counts to prevent confusion
+Small_Chunk_Size  : constant Byte_Count_Type := 64 * KB;    -- For small files
+Medium_Chunk_Size : constant Byte_Count_Type := MB;         -- For medium files
+Large_Chunk_Size  : constant Byte_Count_Type := 4 * MB;     -- For large files
+Huge_Chunk_Size   : constant Byte_Count_Type := 16 * MB;    -- For very large files
 
 -- Boundaries for chunk size validation
-Min_Chunk_Size : constant Natural := KB;            -- 1KB minimum
-Max_Chunk_Size : constant Natural := 512 * MB;     -- 512MB maximum
+Default_Chunk_Size : constant Byte_Count_Type := Small_Chunk_Size;  -- 64KB
+Min_Chunk_Size     : constant Byte_Count_Type := KB;               -- 1KB minimum
+Max_Chunk_Size     : constant Byte_Count_Type := 512 * MB;        -- 512MB maximum
 ```
 
 **Worker Thread Limits**
 ```ada
--- Controls parallel processing capabilities
-Max_Worker_Count       : constant Natural := 256;   -- System maximum
-Default_Worker_Count   : constant Natural := 4;     -- Conservative default
-Max_Worker_Multiplier  : constant Natural := 32;    -- For CPU-based scaling
+-- Uses typed worker count values to enforce constraints
+Max_Worker_Count       : constant Worker_Count_Value_Type := 256;   -- System maximum
+Default_Worker_Count   : constant Worker_Count_Value_Type := 4;     -- Conservative default
+Max_Worker_Count_Range : constant Worker_Count_Value_Type := 64;    -- For DTOs
+
+-- Worker multiplier for CPU-based calculations
+Max_Worker_Multiplier  : constant Worker_Multiplier_Type := 32;    -- For scaling
 ```
 
 **Memory Mapping Thresholds**
 ```ada
--- Determines when memory mapping is beneficial
-Min_Memory_Map_Size : constant Natural := 100 * MB;  -- Below this, use regular I/O
-Max_Memory_Map_Size : constant Natural := GB;        -- Above this, risk address space
+-- Uses typed byte counts for memory mapping decisions
+Min_Memory_Map_Size : constant Byte_Count_Type := 100 * MB;  -- Below this, use regular I/O
+Max_Memory_Map_Size : constant Byte_Count_Type := GB;        -- Above this, risk address space
+```
+
+**Pipeline Configuration**
+```ada
+-- Typed values for queue management and display formatting
+Default_Max_Queue_Depth : constant Queue_Depth_Type := 100;
+Progress_Field_Width    : constant Field_Width_Type := 4;
+
+-- Numeric thresholds for formatting (typed for clarity)
+Progress_Threshold_Ten      : constant Numeric_Threshold_Type := 10;
+Progress_Threshold_Hundred  : constant Numeric_Threshold_Type := 100;
+Progress_Threshold_Thousand : constant Numeric_Threshold_Type := 1_000;
 ```
 
 #### 4.5.4 Usage Example
 ```ada
--- In application code
+-- In application code with type-safe constants
 with Pipelib.Core.Domain.Constants;
+use Pipelib.Core.Domain.Constants;
 
--- Adaptive chunk sizing based on file size
-if File_Size <= Storage_Count (Constants.Small_File_Threshold) then
-   return Constants.Small_Chunk_Size;
-elsif File_Size <= Storage_Count (Constants.Medium_File_Threshold) then
-   return Constants.Medium_Chunk_Size;
-else
-   return Constants.Large_Chunk_Size;
-end if;
+-- Adaptive chunk sizing based on file size (type-safe)
+function Get_Optimal_Chunk_Size (File_Size : Byte_Count_Type) return Byte_Count_Type is
+begin
+   if File_Size <= Small_File_Threshold then
+      return Small_Chunk_Size;    -- Both are Byte_Count_Type - type safe
+   elsif File_Size <= Medium_File_Threshold then
+      return Medium_Chunk_Size;
+   else
+      return Large_Chunk_Size;
+   end if;
+end Get_Optimal_Chunk_Size;
+
+-- Progress tracking with typed counts (prevents parameter confusion)
+procedure Update_Pipeline_Progress
+  (Read_Count      : Read_Count_Type;      -- Cannot pass processed count here
+   Processed_Count : Processed_Count_Type; -- Cannot pass read count here
+   Written_Count   : Written_Count_Type)   -- Cannot pass other count types here
+is
+   Tracker : Progress_Tracker_Type;
+begin
+   Tracker.Update_Read_Count (Read_Count);          -- Type-safe call
+   Tracker.Update_Processed_Count (Processed_Count); -- Type-safe call
+   Tracker.Update_Written_Count (Written_Count);     -- Type-safe call
+end Update_Pipeline_Progress;
 ```
 
 #### 4.5.5 Benefits
 - **Maintainability**: Change values in one place affects entire system
-- **Clarity**: Named constants are self-documenting
-- **Consistency**: Ensures same values used throughout codebase
-- **Testing**: Easy to adjust for different test scenarios
+- **Type Safety**: Typed constants prevent accidental misuse or confusion
+- **Clarity**: Named constants are self-documenting with semantic meaning
+- **Consistency**: Ensures same values and types used throughout codebase
+- **Compile-Time Validation**: Type constraints catch errors at compile time
+- **Testing**: Easy to adjust for different test scenarios while maintaining type safety
 
 ---
 
-## 5. Interface Design
+## 5. Type Safety Design
 
-### 5.1 Generic Stage Interface
+### 5.1 Type Safety Overview
 
-#### 5.1.1 Purpose
+Pipelib implements a comprehensive type safety system that eliminates entire classes of bugs by using Ada's strong typing system to prevent parameter confusion and semantic errors. The system uses distinct types for different semantic concepts, ensuring that values cannot be accidentally mixed or misused.
+
+### 5.2 Type Safety Principles
+
+#### 5.2.1 Semantic Type Distinction
+Rather than using generic types like `Natural` or `Long_Long_Integer` for different concepts, Pipelib defines distinct types for each semantic domain:
+
+```ada
+-- Prevent mixing different kinds of progress counts
+type Read_Count_Type is new Natural;        -- Chunks read from input
+type Processed_Count_Type is new Natural;   -- Chunks processed/transformed
+type Written_Count_Type is new Natural;     -- Chunks written to output
+
+-- Prevent confusion between positions and sequence numbers
+type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
+type Sequence_Number_Type is new Natural;
+
+-- Prevent mixing different performance measurements
+type Processing_Time_Ms_Type is new Natural;
+type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
+```
+
+#### 5.2.2 Compile-Time Error Prevention
+The type system prevents common programming errors at compile time:
+
+```ada
+declare
+   Read_Count : Read_Count_Type := 42;
+   Processed_Count : Processed_Count_Type := 35;
+begin
+   -- This would be a compile error - cannot mix different count types
+   -- if Read_Count > Processed_Count then  -- COMPILE ERROR
+
+   -- Must explicitly convert when intentional comparison is needed
+   if Natural(Read_Count) > Natural(Processed_Count) then
+      -- Safe comparison with explicit intent
+   end if;
+end;
+```
+
+#### 5.2.3 Self-Documenting Code
+Types serve as documentation, making code more readable and maintainable:
+
+```ada
+procedure Update_Progress
+  (Chunks_Read      : Read_Count_Type;      -- Clear intent: input chunks
+   Chunks_Processed : Processed_Count_Type; -- Clear intent: processed chunks
+   Chunks_Written   : Written_Count_Type)   -- Clear intent: output chunks
+```
+
+### 5.3 Type Categories
+
+#### 5.3.1 Progress Tracking Types
+These types prevent accidental mixing of different progress measurements:
+
+```ada
+type Read_Count_Type is new Natural;        -- Chunks read from input source
+type Processed_Count_Type is new Natural;   -- Chunks that completed processing
+type Written_Count_Type is new Natural;     -- Chunks written to output
+type Error_Count_Type is new Natural;       -- Errors encountered during processing
+```
+
+**Usage Example:**
+```ada
+-- Progress tracker maintains separate typed counts
+type Progress_State is record
+   Chunks_Read      : Read_Count_Type := 0;
+   Chunks_Processed : Processed_Count_Type := 0;
+   Chunks_Written   : Written_Count_Type := 0;
+   Errors           : Error_Count_Type := 0;
+end record;
+```
+
+#### 5.3.2 Position and Identification Types
+These types prevent confusion between different positional concepts:
+
+```ada
+type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
+type Sequence_Number_Type is new Natural;
+type Chunk_Count_Type is new Natural;
+type Chunk_Index_Type is new Positive;    -- 1-based indexing for display
+```
+
+**Usage Example:**
+```ada
+-- File chunk with typed position and sequence
+type File_Chunk_Type is record
+   Sequence_Number : Sequence_Number_Type;  -- Order in processing pipeline
+   Offset          : File_Position_Type;    -- Byte position in source file
+   -- ...
+end record;
+```
+
+#### 5.3.3 Performance Measurement Types
+These types ensure different performance metrics cannot be accidentally mixed:
+
+```ada
+type Processing_Time_Ms_Type is new Natural;
+type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
+```
+
+**Usage Example:**
+```ada
+-- DTO with typed performance measurements
+type Process_Chunk_Response is record
+   Processing_Time_Ms : Processing_Time_Ms_Type;  -- Cannot be confused with counts
+   -- ...
+end record;
+```
+
+#### 5.3.4 Configuration Types
+These types provide type safety for system configuration:
+
+```ada
+type Worker_Count_Value_Type is range 1 .. 256;
+type Queue_Depth_Type is new Positive;
+type Byte_Count_Type is new Storage_Count;
+```
+
+### 5.4 Type Safety Implementation Patterns
+
+#### 5.4.1 Conversion Functions
+Safe conversion between typed and untyped values when interfacing with external code:
+
+```ada
+-- From constants package
+function To_Natural (Value : Read_Count_Type) return Natural is (Natural (Value));
+function To_Natural (Value : Processed_Count_Type) return Natural is (Natural (Value));
+function To_Natural (Value : Written_Count_Type) return Natural is (Natural (Value));
+```
+
+#### 5.4.2 Type-Safe Interfaces
+All public interfaces use typed parameters to prevent confusion:
+
+```ada
+function Create_Process_Request
+  (Data_Size       : Storage_Count;
+   File_Position   : File_Position_Type;        -- Typed position
+   Sequence_Number : Sequence_Number_Type := 0; -- Typed sequence
+   Is_Final        : Boolean := False) return Process_Chunk_Request;
+```
+
+#### 5.4.3 Protected Type Operations
+Thread-safe operations maintain type safety:
+
+```ada
+protected type Progress_Tracker_Type is
+   procedure Update_Read_Count (New_Count : Read_Count_Type);
+   procedure Update_Processed_Count (New_Count : Processed_Count_Type);
+   procedure Update_Written_Count (New_Count : Written_Count_Type);
+   -- Cannot accidentally call with wrong count type
+end Progress_Tracker_Type;
+```
+
+### 5.5 Type Safety Benefits
+
+#### 5.5.1 Bug Prevention
+- **Parameter Confusion**: Cannot pass a sequence number where a file position is expected
+- **Unit Confusion**: Cannot mix milliseconds with counts or bytes
+- **Semantic Errors**: Cannot accidentally use read counts for write operations
+
+#### 5.5.2 Code Documentation
+- **Self-Describing**: Function signatures clearly indicate what each parameter represents
+- **Intent Clarity**: Code reviewer can immediately understand data flow and meaning
+- **Maintenance**: Changes to type definitions propagate throughout the system
+
+#### 5.5.3 Compiler Assistance
+- **Compile-Time Checking**: Most errors caught before runtime
+- **IDE Support**: Better autocomplete and error highlighting
+- **Refactoring Safety**: Type changes cause compilation errors where updates needed
+
+#### 5.5.4 Testing Advantages
+- **Mock Safety**: Cannot accidentally provide wrong data types in tests
+- **Boundary Testing**: Type constraints define clear test boundaries
+- **Contract Enforcement**: Type-based preconditions and postconditions
+
+---
+
+## 6. Interface Design
+
+### 6.1 Generic Stage Interface
+
+#### 6.1.1 Purpose
 Provides a common interface for all pipeline processing stages, enabling composition and reusability.
 
-#### 5.1.2 Interface Definition
+#### 6.1.2 Interface Definition
 ```ada
 generic
    type Input_Type is private;
@@ -573,7 +791,7 @@ package Pipelib.Core.Domain.Interfaces.Stage_Interface is
 end Pipelib.Core.Domain.Interfaces.Stage_Interface;
 ```
 
-#### 5.1.3 Implementation Example
+#### 6.1.3 Implementation Example
 ```ada
 package Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage is
 
@@ -666,11 +884,11 @@ end;
 
 ---
 
-## 6. Data Design
+## 7. Data Design
 
-### 6.1 Memory Management Strategy
+### 7.1 Memory Management Strategy
 
-#### 6.1.1 Ownership Model
+#### 7.1.1 Ownership Model
 ```ada
 -- Clear ownership transfer
 procedure Set_Data
@@ -686,7 +904,7 @@ overriding
 procedure Finalize (Object : in out File_Chunk_Type);
 ```
 
-#### 6.1.2 Memory Pool Usage
+#### 7.1.2 Memory Pool Usage
 ```ada
 -- Subpools for related allocations
 package Chunk_Pools is new System.Storage_Pools.Subpools.Root_Storage_Pool_With_Subpools;
@@ -700,9 +918,9 @@ type Chunk_Access is access File_Chunk_Type;
 for Chunk_Access'Storage_Pool use Processing_Subpool;
 ```
 
-### 6.2 Data Structure Optimization
+### 7.2 Data Structure Optimization
 
-#### 6.2.1 Chunk Vector Design
+#### 7.2.1 Chunk Vector Design
 ```ada
 -- Efficient vector implementation for chunks
 package File_Chunk_Vectors is new Ada.Containers.Vectors
@@ -715,7 +933,7 @@ type File_Chunk_Vector is new File_Chunk_Vectors.Vector with null record;
 -- Optimized for append operations and random access
 ```
 
-#### 6.2.2 Memory Layout Optimization
+#### 7.2.2 Memory Layout Optimization
 ```ada
 -- Packed records for memory efficiency
 type Chunk_Metadata is record
@@ -734,11 +952,11 @@ with Alignment => 64; -- Cache line alignment
 
 ---
 
-## 7. Error Handling Design
+## 8. Error Handling Design
 
-### 7.1 Error Classification
+### 8.1 Error Classification
 
-#### 7.1.1 Error Categories
+#### 8.1.1 Error Categories
 ```ada
 type Error_Category is
   (System_Error,          -- OS-level errors
@@ -757,7 +975,7 @@ type Error_Record is record
 end record;
 ```
 
-#### 7.1.2 Error Propagation
+#### 8.1.2 Error Propagation
 ```ada
 -- Error aggregation in parallel processing
 protected type Error_Collector is
@@ -790,9 +1008,9 @@ begin
 end Chain_Operations;
 ```
 
-### 7.2 Contract Violation Handling
+### 8.2 Contract Violation Handling
 
-#### 7.2.1 Development vs Production
+#### 8.2.1 Development vs Production
 ```ada
 -- Development mode: Detailed contract violation reporting
 pragma Assertion_Policy (Check);
@@ -815,11 +1033,11 @@ end Report_Contract_Violation;
 
 ---
 
-## 8. Concurrency Design
+## 9. Concurrency Design
 
-### 8.1 Thread Safety Mechanisms
+### 9.1 Thread Safety Mechanisms
 
-#### 8.1.1 Protected Types
+#### 9.1.1 Protected Types
 ```ada
 -- Thread-safe statistics collection
 protected type Statistics_Type is
@@ -840,7 +1058,7 @@ package Work_Queues is new Ada.Containers.Unbounded_Synchronized_Queues
 type Work_Queue_Type is new Work_Queues.Queue with null record;
 ```
 
-#### 8.1.2 Lock-Free Algorithms
+#### 9.1.2 Lock-Free Algorithms
 ```ada
 -- Atomic counters for performance-critical paths
 package Atomic_Counters is
@@ -857,9 +1075,9 @@ private
 end Atomic_Counters;
 ```
 
-### 8.2 Task Communication Patterns
+### 9.2 Task Communication Patterns
 
-#### 8.2.1 Producer-Consumer
+#### 9.2.1 Producer-Consumer
 ```ada
 -- Work distribution pattern
 task type Producer_Task is
@@ -891,7 +1109,7 @@ begin
 end Coordinator;
 ```
 
-#### 8.2.2 Error Propagation in Concurrent Context
+#### 9.2.2 Error Propagation in Concurrent Context
 ```ada
 -- Exception handling in tasks
 task body Worker_Task is

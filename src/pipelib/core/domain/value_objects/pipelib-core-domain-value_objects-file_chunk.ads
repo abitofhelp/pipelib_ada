@@ -668,8 +668,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
      Dynamic_Predicate =>
        Valid_Chunk_Size > 0 and Valid_Chunk_Size <= MAX_CHUNK_DATA_SIZE;
 
-   subtype Valid_Offset is File_Position_Type
-   with Dynamic_Predicate => Valid_Offset >= 0;
+   subtype Valid_Offset is File_Position_Type;
+   --  Note: File_Position_Type is already constrained to >= 0
 
    --  Error messages
    EMPTY_DATA_ERROR       : constant String := "Chunk data cannot be empty";
@@ -709,8 +709,8 @@ private
    function Is_Valid_Chunk (Chunk : File_Chunk_Type) return Boolean
    is ((if Chunk.Data /= null
         then Chunk.Data.all'Length <= MAX_CHUNK_DATA_SIZE)
-       and then Chunk.Offset >= 0
        and then (if Length (Chunk.Checksum) > 0
                  then Length (Chunk.Checksum) = 64));
+   --  Note: Chunk.Offset >= 0 check removed as File_Position_Type is already constrained
 
 end Pipelib.Core.Domain.Value_Objects.File_Chunk;

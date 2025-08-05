@@ -4,11 +4,12 @@ This guide provides practical insights into Pipelib's architecture for developer
 
 ## Table of Contents
 1. [Design Patterns in Practice](#design-patterns-in-practice)
-2. [Working with the Architecture](#working-with-the-architecture)
-3. [Performance Architecture](#performance-architecture)
-4. [Extension Points](#extension-points)
-5. [Architecture Decision Records](#architecture-decision-records)
-6. [Troubleshooting Architecture Issues](#troubleshooting-architecture-issues)
+2. [Type Safety Architecture](#type-safety-architecture)
+3. [Working with the Architecture](#working-with-the-architecture)
+4. [Performance Architecture](#performance-architecture)
+5. [Extension Points](#extension-points)
+6. [Architecture Decision Records](#architecture-decision-records)
+7. [Troubleshooting Architecture Issues](#troubleshooting-architecture-issues)
 
 ## Design Patterns in Practice
 
@@ -138,6 +139,202 @@ package Generic_Pipeline_Stage is
       end;
    end Process;
 end Generic_Pipeline_Stage;
+```
+
+## Type Safety Architecture
+
+Pipelib implements comprehensive type safety to prevent parameter confusion and semantic errors. This section demonstrates practical patterns for leveraging Ada's type system effectively.
+
+### Semantic Type Distinction Strategy
+
+Rather than using raw `Natural` or `Long_Long_Integer` for all numeric values, Pipelib creates distinct types for different concepts:
+
+```ada
+-- Progress tracking types prevent accidental mixing
+type Read_Count_Type is new Natural;
+type Processed_Count_Type is new Natural;
+type Written_Count_Type is new Natural;
+
+-- Position types prevent confusion between different location concepts
+type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
+type Sequence_Number_Type is new Natural;
+
+-- Performance measurement types
+type Processing_Time_Ms_Type is new Natural;
+type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
+```
+
+### Compile-Time Safety Enforcement
+
+The type system prevents nonsensical operations at compile time:
+
+```ada
+procedure Update_Progress_Safe
+  (Read_Count    : Read_Count_Type;
+   Written_Count : Written_Count_Type)
+is
+begin
+   -- This would cause a compile error (prevents parameter confusion):
+   -- if Read_Count > Written_Count then  -- COMPILE ERROR: different types
+
+   -- Explicit conversion required for intentional comparison:
+   if Natural(Read_Count) > Natural(Written_Count) then
+      -- Handle case where more chunks read than written
+      Log_Warning("Read ahead of write by " &
+                  Natural(Natural(Read_Count) - Natural(Written_Count))'Image);
+   end if;
+end Update_Progress_Safe;
+```
+
+### Type-Safe Interface Design
+
+All public interfaces use semantic types to ensure correctness:
+
+```ada
+-- DTOs with typed fields prevent parameter confusion
+type Process_Chunk_Request is record
+   File_Position   : File_Position_Type;        -- Cannot confuse with sequence
+   Sequence_Number : Sequence_Number_Type := 0; -- Cannot confuse with position
+   Data_Size       : Storage_Count;             -- Size information
+   Is_Final        : Boolean := False;
+end record;
+
+-- Functions with typed parameters
+function Create_Progress_Report
+  (Chunks_Read      : Read_Count_Type;
+   Chunks_Processed : Processed_Count_Type;
+   Chunks_Written   : Written_Count_Type;
+   Processing_Time  : Processing_Time_Ms_Type) return Progress_Report_Type;
+```
+
+### Protected Type Safety
+
+Progress tracking uses distinct types to prevent accidental mixing:
+
+```ada
+protected type Progress_Tracker_Type is
+   -- Each procedure only accepts the semantically correct type
+   procedure Update_Read_Count (New_Count : Read_Count_Type);
+   procedure Update_Processed_Count (New_Count : Processed_Count_Type);
+   procedure Update_Written_Count (New_Count : Written_Count_Type);
+
+   -- Getters return typed values
+   function Get_Read_Count return Read_Count_Type;
+   function Get_Processed_Count return Processed_Count_Type;
+   function Get_Written_Count return Written_Count_Type;
+
+   -- Type-safe completion detection
+   function Is_All_Complete
+     (Total_Expected : Read_Count_Type) return Boolean;
+
+private
+   Chunks_Read      : Read_Count_Type := 0;
+   Chunks_Processed : Processed_Count_Type := 0;
+   Chunks_Written   : Written_Count_Type := 0;
+end Progress_Tracker_Type;
+```
+
+### Conversion Patterns for External Interfaces
+
+When interfacing with external code that uses untyped values, provide explicit conversion functions:
+
+```ada
+-- Type-safe conversion utilities
+package Type_Conversions is
+   function To_File_Position (Value : Natural) return File_Position_Type
+   with Pre => Value >= 0;
+
+   function To_Sequence_Number (Value : Natural) return Sequence_Number_Type
+   with Pre => Value >= 0;
+
+   function From_File_Position (Position : File_Position_Type) return Natural
+   with Post => From_File_Position'Result >= 0;
+
+   function From_Sequence_Number (Sequence : Sequence_Number_Type) return Natural;
+end Type_Conversions;
+
+-- Usage in external interfaces
+procedure Handle_External_Request (Raw_Position : Natural; Raw_Sequence : Natural) is
+   Position : constant File_Position_Type := To_File_Position (Raw_Position);
+   Sequence : constant Sequence_Number_Type := To_Sequence_Number (Raw_Sequence);
+begin
+   Process_Chunk_Request (Position => Position, Sequence => Sequence);
+end Handle_External_Request;
+```
+
+### Type Safety in Generic Programming
+
+Generic packages maintain type safety across instantiations:
+
+```ada
+generic
+   type Count_Type is new Natural;
+   type Item_Type is private;
+package Typed_Container is
+   type Container_Type is tagged private;
+
+   procedure Add_Item (Container : in out Container_Type; Item : Item_Type);
+   function Get_Count (Container : Container_Type) return Count_Type;
+
+   -- Type safety maintained through generic contract
+   function Get_Item (Container : Container_Type; Index : Count_Type) return Item_Type
+   with Pre => Index <= Get_Count (Container);
+
+private
+   type Item_Array is array (Count_Type range <>) of Item_Type;
+   type Container_Type is tagged record
+      Items : Item_Array (1 .. 1000);
+      Count : Count_Type := 0;
+   end record;
+end Typed_Container;
+
+-- Type-safe instantiations
+package Read_Count_Container is new Typed_Container (
+   Count_Type => Read_Count_Type,
+   Item_Type => File_Chunk_Type
+);
+
+package Processed_Count_Container is new Typed_Container (
+   Count_Type => Processed_Count_Type,
+   Item_Type => Processed_Chunk_Type
+);
+```
+
+### Design Benefits and Trade-offs
+
+**Benefits of Type Safety Architecture:**
+- **Compile-time error detection**: Parameter confusion caught at build time
+- **Self-documenting interfaces**: Function signatures clearly show semantic intent
+- **Refactoring safety**: Type changes propagate through codebase automatically
+- **Domain modeling accuracy**: Types reflect real-world concepts precisely
+
+**Trade-offs:**
+- **Conversion overhead**: Explicit conversions required when interfacing with external code
+- **Verbosity**: More type declarations and conversion functions needed
+- **Learning curve**: Developers must understand semantic type distinctions
+
+### Migration from Untyped Code
+
+When converting existing untyped code to use semantic types:
+
+1. **Identify semantic concepts**: Group related numeric values by meaning
+2. **Create distinct types**: Define new types for each semantic concept
+3. **Update interfaces gradually**: Start with public APIs, work inward
+4. **Add conversion functions**: Provide explicit conversions for compatibility
+5. **Validate with tests**: Ensure no behavioral changes during migration
+
+```ada
+-- Before: Parameter confusion possible
+procedure Process_File_Old (
+   Position : Natural;     -- Could accidentally pass sequence number
+   Sequence : Natural      -- Could accidentally pass file position
+);
+
+-- After: Type safety enforced
+procedure Process_File_New (
+   Position : File_Position_Type;   -- Only accepts file positions
+   Sequence : Sequence_Number_Type  -- Only accepts sequence numbers
+);
 ```
 
 ## Working with the Architecture
@@ -490,6 +687,27 @@ end record;
 - ✅ Type safety
 - ❌ More instantiation boilerplate
 
+### ADR-004: Semantic Type Safety
+**Status**: Accepted
+**Context**: Prevent parameter confusion bugs in large codebase
+**Decision**: Use distinct types for different semantic concepts
+**Consequences**:
+- ✅ Compile-time error detection for parameter confusion
+- ✅ Self-documenting interfaces
+- ✅ Better domain modeling
+- ❌ More verbose code with explicit conversions
+- ❌ Learning curve for developers
+
+### ADR-005: Type Naming Conventions
+**Status**: Accepted
+**Context**: Need consistent naming for semantic types
+**Decision**: Append `_Type` suffix to all distinct semantic types
+**Consequences**:
+- ✅ Clear distinction between types and values
+- ✅ Consistent codebase conventions
+- ✅ Easier code navigation and understanding
+- ❌ Slightly longer type names
+
 ## Troubleshooting Architecture Issues
 
 ### Layer Violations
@@ -577,14 +795,45 @@ else
 end if;
 ```
 
+### Type Safety Issues
+
+**Symptom**: Compilation errors about incompatible types
+**Diagnosis**: Check for mixing semantically different types
+```bash
+# Find potential type mixing
+grep -n "Natural.*:=" src/ --include="*.adb" | grep -E "(Sequence|Position|Count)"
+```
+
+**Fix**: Use explicit conversions or correct types:
+```ada
+-- Instead of mixing types:
+-- Position := Sequence_Number;  -- COMPILE ERROR
+
+-- Use explicit conversion:
+Position := File_Position_Type(Natural(Sequence_Number));
+
+-- Or better, redesign to avoid conversion:
+procedure Process_Chunk (
+   Position : File_Position_Type;  -- Use correct semantic type
+   Sequence : Sequence_Number_Type -- Use correct semantic type
+);
+```
+
+**Common Type Confusion Fixes**:
+1. **Progress counts**: Use `Read_Count_Type`, `Processed_Count_Type`, `Written_Count_Type`
+2. **File positions**: Use `File_Position_Type` for byte offsets
+3. **Sequence numbers**: Use `Sequence_Number_Type` for chunk ordering
+4. **Performance metrics**: Use `Processing_Time_Ms_Type`, `Throughput_MBps_Type`
+
 ## Summary
 
 This guide provides practical patterns and solutions for working with Pipelib's architecture. The key principles are:
 
 1. **Respect layer boundaries** - Domain → Application → Infrastructure
-2. **Use dependency injection** - For testability and flexibility
-3. **Optimize thoughtfully** - Profile first, then optimize
-4. **Handle errors explicitly** - Result types over exceptions
-5. **Design for concurrency** - Thread-safe by design
+2. **Enforce type safety** - Use distinct semantic types to prevent parameter confusion
+3. **Use dependency injection** - For testability and flexibility
+4. **Optimize thoughtfully** - Profile first, then optimize
+5. **Handle errors explicitly** - Result types over exceptions
+6. **Design for concurrency** - Thread-safe by design
 
 For formal specifications, see the [Software Design Document](SOFTWARE_DESIGN_DOCUMENT.md). For API details, see the source code contracts.
