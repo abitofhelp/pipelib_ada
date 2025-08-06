@@ -54,7 +54,7 @@ The library targets developers building data processing applications where perfo
 - Ada 2022 Language Reference Manual
 - Domain-Driven Design (Eric Evans)
 - Clean Architecture (Robert Martin)
-- CLAUDE.md - Project coding standards and architectural guidelines
+- Project coding standards and architectural guidelines
 
 ---
 

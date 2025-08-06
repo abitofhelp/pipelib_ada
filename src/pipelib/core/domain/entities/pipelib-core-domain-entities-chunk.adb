@@ -7,8 +7,11 @@
 pragma Ada_2022;
 
 with Ada.Unchecked_Deallocation;
+with Abohlib.Core.Domain.Types.Bytes;
 
 package body Pipelib.Core.Domain.Entities.Chunk is
+
+   use Abohlib.Core.Domain.Types.Bytes;
 
    procedure Free is new
      Ada.Unchecked_Deallocation
@@ -86,7 +89,7 @@ package body Pipelib.Core.Domain.Entities.Chunk is
         and then (if Chunk.Data = null then Chunk.Data_Size = 0)
         and then
         --  Size constraints
-                               Long_Long_Integer
+                               SI_Bytes_Type
                                   (Chunk.Data_Size)
                              <= Pipelib
                                   .Core

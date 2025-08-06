@@ -82,12 +82,16 @@ pragma Ada_2022;
 with Ada.Strings.Unbounded;
 with System.Storage_Elements;
 with Pipelib.Core.Domain.Constants;
+with Abohlib.Core.Domain.Types.Bytes;
+with Abohlib.Core.Domain.Types.Counts;
+with Abohlib.Core.Domain.Types.Time;
 
 package Pipelib.Core.Application.DTOs is
 
    use Ada.Strings.Unbounded;
    use System.Storage_Elements;
    use Pipelib.Core.Domain.Constants;
+   use Abohlib.Core.Domain.Types.Bytes;
 
    --  ## Processing Priority Levels
    --
@@ -109,13 +113,12 @@ package Pipelib.Core.Application.DTOs is
    --  * `Is_Final_Chunk` - True if this is the last chunk in the stream
    type Process_Chunk_Request is record
       Data_Address    : System.Address;
-      Data_Size       : Storage_Count;
+      Data_Size       : Abohlib.Core.Domain.Types.Bytes.Buffer_Size_Type;
       File_Position   : File_Position_Type;
       Sequence_Number : Sequence_Number_Type := 0;
       Priority        : Processing_Priority := Normal;
       Is_Final_Chunk  : Boolean := False;
-   end record
-   with Dynamic_Predicate => Data_Size > 0;
+   end record;
 
    --  ## Chunk Processing Response DTO
    --
@@ -131,7 +134,7 @@ package Pipelib.Core.Application.DTOs is
    type Process_Chunk_Response is record
       Success            : Boolean;
       Actual_Sequence    : Sequence_Number_Type;
-      Bytes_Processed    : Storage_Count;
+      Bytes_Processed    : Abohlib.Core.Domain.Types.Bytes.SI_Bytes_Type;
       Processing_Time_Ms : Processing_Time_Ms_Type;
       Error_Message      : Unbounded_String;
    end record;
@@ -154,11 +157,11 @@ package Pipelib.Core.Application.DTOs is
       Total_Chunks_Submitted     : Chunk_Count_Type := 0;
       Total_Chunks_Completed     : Chunk_Count_Type := 0;
       Total_Chunks_Failed        : Chunk_Count_Type := 0;
-      Total_Bytes_Processed      : Long_Long_Integer := 0;
+      Total_Bytes_Processed      : Abohlib.Core.Domain.Types.Bytes.SI_Bytes_Type := 0;
       Average_Processing_Time_Ms : Processing_Time_Ms_Type := 0;
       Peak_Throughput_MBps       : Throughput_MBps_Type := 0.0;
-      Active_Workers             : Natural := 0;
-      Queue_Depth                : Natural := 0;
+      Active_Workers             : Abohlib.Core.Domain.Types.Counts.Element_Count_Type := 0;
+      Queue_Depth                : Abohlib.Core.Domain.Types.Counts.Element_Count_Type := 0;
    end record;
 
    --  ## Pipeline Configuration DTO
@@ -174,13 +177,13 @@ package Pipelib.Core.Application.DTOs is
    --  * `Output_File_Path` - Path to output file
    --  * `Use_Temporary_File` - Whether to use temporary file for atomic writes
    type Pipeline_Configuration is record
-      Worker_Count       : Positive range 1 .. Natural (Pipelib.Core.Domain.Constants.Max_Worker_Count_Range)
-                            := Natural (Pipelib.Core.Domain.Constants.Default_Worker_Count);
-      Chunk_Size_Bytes   : Positive :=
-         Pipelib.Core.Domain.Constants.To_Natural
+      Worker_Count       : Abohlib.Core.Domain.Types.Counts.Worker_Count_Type
+                            range 1 .. 64 := 4;
+      Chunk_Size_Bytes   : Abohlib.Core.Domain.Types.Bytes.Buffer_Size_Type :=
+         Abohlib.Core.Domain.Types.Bytes.Buffer_Size_Type
             (Pipelib.Core.Domain.Constants.Default_Chunk_Size);
-      Max_Queue_Depth    : Positive :=
-         Pipelib.Core.Domain.Constants.To_Natural
+      Max_Queue_Depth    : Abohlib.Core.Domain.Types.Counts.Element_Count_Type :=
+         Abohlib.Core.Domain.Types.Counts.Element_Count_Type
             (Pipelib.Core.Domain.Constants.Default_Max_Queue_Depth);
       Enable_Statistics  : Boolean := True;
       Output_File_Path   : Unbounded_String;
@@ -209,7 +212,7 @@ package Pipelib.Core.Application.DTOs is
       Current_Status : Processing_Status := Not_Started;
       Statistics     : Pipeline_Statistics;
       Status_Message : Unbounded_String;
-      Last_Updated   : Long_Long_Integer := 0;  -- Timestamp
+      Last_Updated   : Abohlib.Core.Domain.Types.Time.Timestamp_Type := 0;
    end record;
 
    --  ## DTO Construction and Validation
@@ -228,7 +231,7 @@ package Pipelib.Core.Application.DTOs is
    with
      Pre => Data_Size > 0 and File_Position >= 0,
      Post =>
-       Create_Process_Request'Result.Data_Size = Data_Size
+       Create_Process_Request'Result.Data_Size = Buffer_Size_Type (Data_Size)
        and Create_Process_Request'Result.File_Position = File_Position;
 
    --  Create a success response

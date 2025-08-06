@@ -11,7 +11,7 @@ with Ada.Exceptions;
 with Ada.Streams; use Ada.Streams;
 with Ada.Unchecked_Deallocation;
 
-package body Pipelib.Infrastructure.IO.Random_Write_File is
+package body Pipelib.Infrastructure.Adapters.IO.Random_Write_File is
 
    use Ada.Streams.Stream_IO;
    use Abohlib.Core.Domain.Value_Objects.File_Path;
@@ -390,4 +390,4 @@ package body Pipelib.Infrastructure.IO.Random_Write_File is
 
    end Protected_Random_Write_File;
 
-end Pipelib.Infrastructure.IO.Random_Write_File;
+end Pipelib.Infrastructure.Adapters.IO.Random_Write_File;

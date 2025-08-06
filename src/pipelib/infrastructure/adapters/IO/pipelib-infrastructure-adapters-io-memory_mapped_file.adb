@@ -12,7 +12,7 @@ pragma Ada_2022;
 with Ada.Directories;
 with Interfaces.C;
 
-package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
+package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
 
    use type Interfaces.C.int;
    use type Interfaces.C.size_t;
@@ -301,4 +301,4 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_File is
       end if;
    end Finalize;
 
-end Pipelib.Infrastructure.IO.Memory_Mapped_File;
+end Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File;

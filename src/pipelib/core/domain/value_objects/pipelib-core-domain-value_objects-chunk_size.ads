@@ -10,45 +10,45 @@
 pragma Ada_2022;
 
 with Abohlib.Core.Domain.Constants.Bytes;
-with Abohlib.Core.Domain.Types;
+with Abohlib.Core.Domain.Types.Bytes;
 
 package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
    use Abohlib.Core.Domain.Constants.Bytes;
-   use Abohlib.Core.Domain.Types;
+   use Abohlib.Core.Domain.Types.Bytes;
 
    --  Chunk size bounds (1KB to 1GB) using typed constants
-   MIN_CHUNK_SIZE     : constant Long_Long_Integer := Long_Long_Integer (SI_KB);
-   MAX_CHUNK_SIZE     : constant Long_Long_Integer := Long_Long_Integer (SI_GB);
-   DEFAULT_CHUNK_SIZE : constant Long_Long_Integer := Long_Long_Integer (16 * SI_MB);
+   MIN_CHUNK_SIZE     : constant SI_Bytes_Type := SI_KB;
+   MAX_CHUNK_SIZE     : constant SI_Bytes_Type := SI_GB;
+   DEFAULT_CHUNK_SIZE : constant SI_Bytes_Type := SI_Bytes_Type (16) * SI_MB;
 
-   --  Common chunk sizes (converted from typed constants)
-   SIZE_1KB : constant Long_Long_Integer := Long_Long_Integer (1 * SI_KB);
-   SIZE_4KB : constant Long_Long_Integer := Long_Long_Integer (4 * SI_KB);
-   SIZE_64KB : constant Long_Long_Integer := Long_Long_Integer (64 * SI_KB);
-   SIZE_256KB : constant Long_Long_Integer := Long_Long_Integer (256 * SI_KB);
-   SIZE_1MB : constant Long_Long_Integer := Long_Long_Integer (1 * SI_MB);
-   SIZE_4MB : constant Long_Long_Integer := Long_Long_Integer (4 * SI_MB);
-   SIZE_8MB : constant Long_Long_Integer := Long_Long_Integer (8 * SI_MB);
-   SIZE_16MB : constant Long_Long_Integer := Long_Long_Integer (16 * SI_MB);
-   SIZE_32MB : constant Long_Long_Integer := Long_Long_Integer (32 * SI_MB);
-   SIZE_64MB : constant Long_Long_Integer := Long_Long_Integer (64 * SI_MB);
-   SIZE_128MB : constant Long_Long_Integer := Long_Long_Integer (128 * SI_MB);
-   SIZE_256MB : constant Long_Long_Integer := Long_Long_Integer (256 * SI_MB);
-   SIZE_512MB : constant Long_Long_Integer := Long_Long_Integer (512 * SI_MB);
+   --  Common chunk sizes (using typed constants)
+   SIZE_1KB : constant SI_Bytes_Type := SI_Bytes_Type (1) * SI_KB;
+   SIZE_4KB : constant SI_Bytes_Type := SI_Bytes_Type (4) * SI_KB;
+   SIZE_64KB : constant SI_Bytes_Type := SI_Bytes_Type (64) * SI_KB;
+   SIZE_256KB : constant SI_Bytes_Type := SI_Bytes_Type (256) * SI_KB;
+   SIZE_1MB : constant SI_Bytes_Type := SI_Bytes_Type (1) * SI_MB;
+   SIZE_4MB : constant SI_Bytes_Type := SI_Bytes_Type (4) * SI_MB;
+   SIZE_8MB : constant SI_Bytes_Type := SI_Bytes_Type (8) * SI_MB;
+   SIZE_16MB : constant SI_Bytes_Type := SI_Bytes_Type (16) * SI_MB;
+   SIZE_32MB : constant SI_Bytes_Type := SI_Bytes_Type (32) * SI_MB;
+   SIZE_64MB : constant SI_Bytes_Type := SI_Bytes_Type (64) * SI_MB;
+   SIZE_128MB : constant SI_Bytes_Type := SI_Bytes_Type (128) * SI_MB;
+   SIZE_256MB : constant SI_Bytes_Type := SI_Bytes_Type (256) * SI_MB;
+   SIZE_512MB : constant SI_Bytes_Type := SI_Bytes_Type (512) * SI_MB;
 
    --  Chunk size type
    type Chunk_Size_Type is private
    with Type_Invariant => Is_Valid (Chunk_Size_Type);
 
    --  Constructor with validation
-   function Create (Bytes : Long_Long_Integer) return Chunk_Size_Type
+   function Create (Bytes : SI_Bytes_Type) return Chunk_Size_Type
    with
      Pre => Bytes >= MIN_CHUNK_SIZE and Bytes <= MAX_CHUNK_SIZE,
      Post => Value (Create'Result) = Bytes and Is_Valid (Create'Result);
 
    --  Get the value in bytes
-   function Value (Size : Chunk_Size_Type) return Long_Long_Integer
+   function Value (Size : Chunk_Size_Type) return SI_Bytes_Type
    with
      Pre => Is_Valid (Size),
      Post => Value'Result >= MIN_CHUNK_SIZE and Value'Result <= MAX_CHUNK_SIZE,
@@ -75,19 +75,19 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    function From_KB (KB : Natural) return Chunk_Size_Type
    with
      Pre =>
-       Long_Long_Integer (KB) * Long_Long_Integer (SI_KB) >= MIN_CHUNK_SIZE
-       and Long_Long_Integer (KB) * Long_Long_Integer (SI_KB) <= MAX_CHUNK_SIZE,
+       SI_Bytes_Type (KB) * SI_KB >= MIN_CHUNK_SIZE
+       and SI_Bytes_Type (KB) * SI_KB <= MAX_CHUNK_SIZE,
      Post =>
-       Value (From_KB'Result) = Long_Long_Integer (KB) * Long_Long_Integer (SI_KB)
+       Value (From_KB'Result) = SI_Bytes_Type (KB) * SI_KB
        and Is_Valid (From_KB'Result);
 
    function From_MB (MB : Natural) return Chunk_Size_Type
    with
      Pre =>
-       Long_Long_Integer (MB) * Long_Long_Integer (SI_MB) >= MIN_CHUNK_SIZE
-       and Long_Long_Integer (MB) * Long_Long_Integer (SI_MB) <= MAX_CHUNK_SIZE,
+       SI_Bytes_Type (MB) * SI_MB >= MIN_CHUNK_SIZE
+       and SI_Bytes_Type (MB) * SI_MB <= MAX_CHUNK_SIZE,
      Post =>
-       Value (From_MB'Result) = Long_Long_Integer (MB) * Long_Long_Integer (SI_MB)
+       Value (From_MB'Result) = SI_Bytes_Type (MB) * SI_MB
        and Is_Valid (From_MB'Result);
 
    --  Named size constructors
@@ -102,7 +102,7 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 
    --  Adaptive chunk size based on total size
    function Adaptive_For_Size
-     (Total_Size : Long_Long_Integer) return Chunk_Size_Type
+     (Total_Size : SI_Bytes_Type) return Chunk_Size_Type
    with
      Pre => Total_Size > 0,
      Post =>
@@ -113,11 +113,13 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
 private
 
    type Chunk_Size_Type is record
-      Bytes : Long_Long_Integer range MIN_CHUNK_SIZE .. MAX_CHUNK_SIZE :=
-        DEFAULT_CHUNK_SIZE;
-   end record;
+      Bytes : SI_Bytes_Type := DEFAULT_CHUNK_SIZE;
+   end record
+   with Dynamic_Predicate =>
+     Chunk_Size_Type.Bytes >= MIN_CHUNK_SIZE and
+     Chunk_Size_Type.Bytes <= MAX_CHUNK_SIZE;
 
-   function Value (Size : Chunk_Size_Type) return Long_Long_Integer
+   function Value (Size : Chunk_Size_Type) return SI_Bytes_Type
    is (Size.Bytes);
 
    pragma

@@ -86,7 +86,7 @@ with Abohlib.Core.Domain.Result;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 with Pipelib.Core.Domain.Constants;
 
-package Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
+package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter is
 
    use System.Storage_Elements;
    use Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface;
@@ -350,4 +350,4 @@ private
        and then Memory_To_Stream_Elements'Result.all'Length = Natural (Length);
    --  Converts memory address and length to Stream_Element_Array_Access
 
-end Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter;
+end Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter;

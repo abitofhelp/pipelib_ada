@@ -1,4 +1,4 @@
-# Pipelib Quick Start Guide for Junior Developers
+# Pipelib Quick Start Guide
 
 ## What is Pipelib?
 
@@ -13,8 +13,21 @@ Pipelib is a library for processing large files in parallel. Think of it as a fa
 ### 1. Chunks 🧩
 A chunk is a piece of data being processed:
 ```ada
+-- Import the necessary packages
+with Pipelib.Core.Domain.Value_Objects.Chunk_Size;
+use Pipelib.Core.Domain.Value_Objects.Chunk_Size;
+
 -- Create a chunk (like getting a part ready for the assembly line)
-My_Chunk : Chunk_Type := Create(Number => 1, Size => From_MB(16));
+My_Chunk : Chunk_Type := Create(
+   Number => 1,
+   Size => SIZE_16MB  -- Use predefined constants
+);
+
+-- Or create with a custom size
+Custom_Chunk : Chunk_Type := Create(
+   Number => 2,
+   Size => From_MB(32)  -- Convert from megabytes
+);
 ```
 
 **Think of it as**: A package moving through a delivery system. It has:
@@ -155,6 +168,65 @@ if Result.Is_Ok then
 else
    Put_Line("Error: " & Result.Get_Err);
 end if;
+```
+
+## Working with Strong Types 💪
+
+Pipelib uses strong types from Abohlib to prevent common errors:
+
+### Byte Sizes
+```ada
+with Abohlib.Core.Domain.Types.Bytes; use Abohlib.Core.Domain.Types.Bytes;
+
+-- Instead of using raw integers:
+-- Size : Natural := 1024000;  -- Is this bytes? KB? MB?
+
+-- Use strong types:
+Size : SI_Bytes_Type := From_MB(1);  -- Clearly 1 MB
+Chunk_Bytes : SI_Bytes_Type := From_KB(512);  -- Clearly 512 KB
+
+-- Convert when needed:
+Size_In_Bytes : Natural := To_Natural(Chunk_Bytes);
+Large_File : SI_Bytes_Type := From_Long_Long_Integer(5_000_000_000);
+```
+
+### Count Types
+```ada
+with Pipelib.Core.Domain.Constants.Count_Arithmetic;
+use Pipelib.Core.Domain.Constants.Count_Arithmetic;
+
+-- Track different kinds of counts separately:
+Chunks_Read : Read_Count_Type := 0;
+Chunks_Processed : Processed_Count_Type := 0;
+Chunks_Written : Written_Count_Type := 0;
+
+-- Arithmetic operations are available:
+Chunks_Read := Increment(Chunks_Read);
+Total_Processed := Chunks_Processed + Processed_Count_Type(10);
+```
+
+### Performance Monitoring
+```ada
+with Abohlib.Core.Domain.Types.Performance;
+use Abohlib.Core.Domain.Types.Performance;
+with Abohlib.Core.Domain.Math; use Abohlib.Core.Domain.Math;
+
+-- Calculate throughput
+Start_Time : constant Time := Clock;
+Bytes_Processed : SI_Bytes_Type := From_GB(2);
+-- ... do processing ...
+Elapsed : constant Duration := Clock - Start_Time;
+
+-- Get throughput in MB/s
+Throughput : MB_Per_Second_Type :=
+   Calculate_MB_Per_Second(Bytes_Processed, Elapsed);
+
+-- Calculate progress percentage
+Progress : Percentage_Type :=
+   Calculate_Percentage(Bytes_Processed, Total_Bytes);
+
+Put_Line("Speed: " & Float(Throughput)'Image & " MB/s");
+Put_Line("Progress: " & Float(Progress)'Image & "%");
 ```
 
 ## Debugging Tips 🐛

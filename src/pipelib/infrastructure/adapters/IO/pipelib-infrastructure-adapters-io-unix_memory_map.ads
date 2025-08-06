@@ -13,6 +13,7 @@ with Ada.Finalization;
 with System;
 with System.Storage_Elements;
 with Abohlib.Core.Domain.Value_Objects.File_Path;
+with Abohlib.Core.Domain.Types.Bytes;
 with Pipelib.Core.Domain.Ports.Memory_Mapped_File_Interface;
 
 package Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
@@ -76,8 +77,8 @@ package Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
 
    --  Determine if a file should be memory mapped based on size
    function Should_Use_Memory_Map
-     (File_Size : Long_Long_Integer;
-      Threshold : Long_Long_Integer := 100 * 1024 * 1024) return Boolean;
+     (File_Size : Abohlib.Core.Domain.Types.Bytes.File_Size_Type;
+      Threshold : Abohlib.Core.Domain.Types.Bytes.File_Size_Type := 100_000_000) return Boolean;
 
 private
    type Platform_Handle is new Natural;

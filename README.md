@@ -70,6 +70,8 @@ Unlike general-purpose libraries, Pipelib is laser-focused on pipeline processin
 - **Comprehensive Error Handling**: Result pattern with no exception propagation
 - **Real-Time Progress Tracking**: Thread-safe monitoring of processing progress
 - **Contract-Rich**: Extensive Ada 2022 contracts for compile-time correctness
+- **Strong Typing**: Leverages Abohlib's type system for bytes, counts, and performance metrics
+- **Performance Monitoring**: Built-in throughput and progress calculations
 
 ## 📋 Table of Contents
 
@@ -170,7 +172,7 @@ Pipelib's design informs:
 
 - **Ada Compiler**: GNAT 12.0+ with Ada 2022 support
 - **Build System**: [Alire](https://alire.ada.dev/) package manager
-- **Dependencies**: Abohlib utility library
+- **Dependencies**: [Abohlib](https://github.com/abitofhelp/abohlib) - Provides strong types, error handling, and performance utilities
 
 ### Installation
 
@@ -396,7 +398,7 @@ make coverage
 
 We welcome contributions! Please follow these guidelines:
 
-1. **Code Standards**: Follow [CLAUDE.md](CLAUDE.md) coding standards
+1. **Code Standards**: Follow coding standards
 2. **Contracts**: All public APIs need comprehensive contracts
 3. **Testing**: Maintain 90%+ test coverage
 4. **Documentation**: Update relevant documentation
@@ -423,7 +425,7 @@ make pre-commit          # Run all checks
 - [Detailed Architecture Guide](docs/ARCHITECTURE.md) - Complete architectural documentation with diagrams
 - [Software Requirements Specification](docs/SOFTWARE_REQUIREMENTS_SPECIFICATION.md) - Formal requirements
 - [Software Design Document](docs/SOFTWARE_DESIGN_DOCUMENT.md) - Detailed design documentation
-- [Software Test Plan](docs/SOFTWARE_TEST_PLAN.md) - Comprehensive test strategy
+- [Testing Guide](docs/TESTING_GUIDE.md) - Comprehensive testing documentation and practical guide
 
 ### Guides
 - [Quick Start Guide](docs/QUICK_START_GUIDE.md) - Beginner-friendly introduction

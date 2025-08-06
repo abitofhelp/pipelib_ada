@@ -146,7 +146,7 @@ package body Test_Performance_Suite is
             Float (Total_Bytes) / Float (Abohlib.Core.Domain.Constants.Bytes.SI_MB) / Float (Duration_Seconds);
       begin
          Put_Line ("Pipeline Throughput: " &
-                   Natural (Throughput_MB_Per_Sec)'Image & " MB/s");
+                   Natural (Float (Throughput_MB_Per_Sec))'Image & " MB/s");
 
          -- Performance threshold: Should process at least 100 MB/s
          if Throughput_MB_Per_Sec < 100.0 then
@@ -251,7 +251,7 @@ package body Test_Performance_Suite is
             Float (Total_Bytes) / Float (Abohlib.Core.Domain.Constants.Bytes.SI_MB) / Float (Duration_Seconds);
       begin
          Put_Line ("SHA-256 Hasher Throughput: " &
-                   Natural (Throughput_MB_Per_Sec)'Image & " MB/s");
+                   Natural (Float (Throughput_MB_Per_Sec))'Image & " MB/s");
 
          -- Performance threshold: SHA-256 should process at least 50 MB/s
          if Throughput_MB_Per_Sec < 50.0 then

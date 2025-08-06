@@ -5,11 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Updated to use Abohlib's new arithmetic operations for strong types
+- Leveraged Abohlib's helper functions for performance calculations
+- Improved type safety with SI_Bytes_Type throughout the codebase
+
+### Documentation
+- Updated Quick Start Guide with strong typing examples and performance monitoring
+- Enhanced Software Design Document with new type arithmetic operations
+- Added Type Safety and Performance Guide covering best practices
+- Updated README to highlight strong typing and Abohlib integration
+
+### Dependencies
+- Updated to latest Abohlib with arithmetic operations and Math module
+
 ## [1.0.2] - 2025-08-04
 
 ### Changed
 - Expanded README.md introduction with more detailed project overview
-- Removed internal .claude configuration directory for cleaner repository
 
 ### Documentation
 - Enhanced project description and getting started information

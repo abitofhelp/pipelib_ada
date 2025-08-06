@@ -27,11 +27,11 @@ package body Pipelib.Core.Application.Services.Progress_Display is
       Img : constant String := Natural'Image (N);
    begin
       -- Remove leading space and pad to fixed width for alignment
-      if N < To_Natural (Progress_Threshold_Ten) then
+      if N < Natural (Progress_Threshold_Ten) then
          return "   " & Img (Img'First + 1 .. Img'Last);
-      elsif N < To_Natural (Progress_Threshold_Hundred) then
+      elsif N < Natural (Progress_Threshold_Hundred) then
          return "  " & Img (Img'First + 1 .. Img'Last);
-      elsif N < To_Natural (Progress_Threshold_Thousand) then
+      elsif N < Natural (Progress_Threshold_Thousand) then
          return " " & Img (Img'First + 1 .. Img'Last);
       else
          return Img (Img'First + 1 .. Img'Last);
@@ -67,7 +67,7 @@ package body Pipelib.Core.Application.Services.Progress_Display is
       end if;
 
       -- Display read stage progress
-      Ada.Text_IO.Put ("  Read:      " & Format_Count (Pipelib.Core.Domain.Constants.To_Natural (State.Chunks_Read)));
+      Ada.Text_IO.Put ("  Read:      " & Format_Count (Natural (State.Chunks_Read)));
       if State.Read_Complete then
          Ada.Text_IO.Put (" " & Checkmark);
       end if;
@@ -75,7 +75,7 @@ package body Pipelib.Core.Application.Services.Progress_Display is
 
       -- Display processing stage progress
       Ada.Text_IO.Put
-        ("  Processed: " & Format_Count (Pipelib.Core.Domain.Constants.To_Natural (State.Chunks_Processed)));
+        ("  Processed: " & Format_Count (Natural (State.Chunks_Processed)));
       if State.Process_Complete then
          Ada.Text_IO.Put (" " & Checkmark);
       end if;
@@ -83,7 +83,7 @@ package body Pipelib.Core.Application.Services.Progress_Display is
 
       -- Display write stage progress
       Ada.Text_IO.Put ("  Written:   " & Format_Count (
-         Pipelib.Core.Domain.Constants.To_Natural (State.Chunks_Written)));
+         Natural (State.Chunks_Written)));
       if State.Write_Complete then
          Ada.Text_IO.Put (" " & Checkmark);
       end if;

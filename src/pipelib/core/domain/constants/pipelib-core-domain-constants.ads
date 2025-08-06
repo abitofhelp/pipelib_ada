@@ -11,10 +11,10 @@ package Pipelib.Core.Domain.Constants is
    --  Type Definitions for Type Safety
    --  =====================================================================
 
-   --  Type for byte counts and file sizes (compatible with Storage_Count)
-   type Byte_Count_Type is new Storage_Count;
+   --  File size and byte measurements
+   type Byte_Count_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
 
-   --  Type for worker count values (distinct from value object's Worker_Count_Type)
+   --  Pipeline worker count
    type Worker_Count_Value_Type is range 1 .. 256;
 
    --  Type for queue depths
@@ -34,25 +34,23 @@ package Pipelib.Core.Domain.Constants is
    --  =====================================================================
 
    --  Distinct types for different kinds of progress to prevent accidental mixing
-   type Read_Count_Type is new Natural;        -- Chunks read from input
-   type Processed_Count_Type is new Natural;   -- Chunks processed/transformed
-   type Written_Count_Type is new Natural;     -- Chunks written to output
-   type Error_Count_Type is new Natural;       -- Errors encountered during processing
+   type Read_Count_Type is new Natural;
+   type Processed_Count_Type is new Natural;
+   type Written_Count_Type is new Natural;
+   type Error_Count_Type is new Natural;
 
-   --  General types (duplicated here to avoid preelaboration dependency issues)
+   --  General pipeline types
    type Processing_Time_Ms_Type is new Natural;
    type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
    type Sequence_Number_Type is new Natural;
    type Chunk_Count_Type is new Natural;
-   type Chunk_Index_Type is new Positive;    -- 1-based chunk indexing for user display
+   type Chunk_Index_Type is new Positive;
    type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
 
    --  =====================================================================
-   --  Base Units (using Byte_Count_Type for type safety)
+   --  Base Units
    --  =====================================================================
 
-   --  File Size Units (Note: Cannot use abohlib byte constants due to categorization)
-   --  These values match abohlib SI units: KB=1000, MB=1000000, GB=1000000000
    KB : constant Byte_Count_Type := 1_000;
    MB : constant Byte_Count_Type := 1_000_000;
    GB : constant Byte_Count_Type := 1_000_000_000;
@@ -134,7 +132,7 @@ package Pipelib.Core.Domain.Constants is
    ANSI_OK_Marker   : constant String := "[OK]";
 
    --  =====================================================================
-   --  Conversion Functions (for interfacing with non-typed code)
+   --  Basic Conversion Functions (for interfacing with external code)
    --  =====================================================================
 
    function To_Natural (Value : Byte_Count_Type) return Natural is
@@ -144,22 +142,6 @@ package Pipelib.Core.Domain.Constants is
       (Natural (Value));
 
    function To_Natural (Value : Queue_Depth_Type) return Natural is
-      (Natural (Value));
-
-   function To_Natural (Value : Numeric_Threshold_Type) return Natural is
-      (Natural (Value));
-
-   --  Progress type conversions
-   function To_Natural (Value : Read_Count_Type) return Natural is
-      (Natural (Value));
-
-   function To_Natural (Value : Processed_Count_Type) return Natural is
-      (Natural (Value));
-
-   function To_Natural (Value : Written_Count_Type) return Natural is
-      (Natural (Value));
-
-   function To_Natural (Value : Error_Count_Type) return Natural is
       (Natural (Value));
 
    function To_Storage_Count (Value : Byte_Count_Type) return Storage_Count is

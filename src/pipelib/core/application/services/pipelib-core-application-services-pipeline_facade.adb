@@ -6,7 +6,11 @@
 
 pragma Ada_2022;
 
+with System.Storage_Elements;
+
 package body Pipelib.Core.Application.Services.Pipeline_Facade is
+
+   use System.Storage_Elements;
 
    use Ada.Strings.Unbounded;
 
@@ -59,7 +63,7 @@ package body Pipelib.Core.Application.Services.Pipeline_Facade is
       return
         Create_Success_Response
           (Sequence        => Request.Sequence_Number,
-           Bytes_Processed => Request.Data_Size,
+           Bytes_Processed => Storage_Count (Request.Data_Size),
            Processing_Time => 10  -- Mock processing time
           );
    end Process_Chunk;

@@ -10,8 +10,11 @@ with Ada.Numerics.Discrete_Random;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
 with SHA2;
+with Abohlib.Core.Domain.Types.Bytes;
 
 package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
+
+   use Abohlib.Core.Domain.Types.Bytes;
 
    --  Package for generating random bytes for UUID
    package Random_Byte is new
@@ -73,7 +76,7 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
          New_Data : constant Stream_Element_Array_Access :=
            new Stream_Element_Array'(Data);
          Size     : constant Chunk_Size.Chunk_Size_Type :=
-           Chunk_Size.Create (Long_Long_Integer (Data'Length));
+           Chunk_Size.Create (Abohlib.Core.Domain.Types.Bytes.SI_Bytes_Type (Data'Length));
          Chunk    : constant File_Chunk_Type :=
            (Ada.Finalization.Controlled
             with
@@ -110,7 +113,7 @@ package body Pipelib.Core.Domain.Value_Objects.File_Chunk is
 
       declare
          Size  : constant Chunk_Size.Chunk_Size_Type :=
-           Chunk_Size.Create (Long_Long_Integer (Data.all'Length));
+           Chunk_Size.Create (Abohlib.Core.Domain.Types.Bytes.SI_Bytes_Type (Data.all'Length));
          Chunk : constant File_Chunk_Type :=
            (Ada.Finalization.Controlled
             with

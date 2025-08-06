@@ -7,14 +7,15 @@ This directory contains supplementary documentation and architectural diagrams f
 ### Formal Documentation
 - **[SOFTWARE_REQUIREMENTS_SPECIFICATION.md](SOFTWARE_REQUIREMENTS_SPECIFICATION.md)** - Software Requirements Specification
 - **[SOFTWARE_DESIGN_DOCUMENT.md](SOFTWARE_DESIGN_DOCUMENT.md)** - Software Design Document
-- **[SOFTWARE_TEST_PLAN.md](SOFTWARE_TEST_PLAN.md)** - Software Test Plan
+- **[TESTING_GUIDE.md](TESTING_GUIDE.md)** - Comprehensive Testing Guide
 
 ### Architecture & Design Guides
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture guide with design patterns and principles
 - **[diagrams/](diagrams/)** - Architecture diagrams (UML, sequence, state diagrams)
 
 ### Developer Guides
-- **[QUICK_START_GUIDE.md](QUICK_START_GUIDE.md)** - Getting started guide for new developers
+- **[QUICK_START_GUIDE.md](QUICK_START_GUIDE.md)** - Getting started guide with examples of chunks, stages, and pipelines
+- **[TYPE_SAFETY_AND_PERFORMANCE_GUIDE.md](TYPE_SAFETY_AND_PERFORMANCE_GUIDE.md)** - Working with strong types and performance monitoring
 - **[MULTI_LANGUAGE_PORTING_GUIDE.md](MULTI_LANGUAGE_PORTING_GUIDE.md)** - Guide for porting Pipelib to other languages
 
 ### Process Documentation
@@ -50,11 +51,11 @@ cd docs/diagrams
 3. Review the [ARCHITECTURE.md](ARCHITECTURE.md) and diagrams
 
 ### For Contributors
-1. Review [CLAUDE.md](../CLAUDE.md) for coding standards
+1. Review coding standards
 2. Check the formal documentation:
    - [SOFTWARE_REQUIREMENTS_SPECIFICATION.md](SOFTWARE_REQUIREMENTS_SPECIFICATION.md)
    - [SOFTWARE_DESIGN_DOCUMENT.md](SOFTWARE_DESIGN_DOCUMENT.md)
-   - [SOFTWARE_TEST_PLAN.md](SOFTWARE_TEST_PLAN.md)
+   - [TESTING_GUIDE.md](TESTING_GUIDE.md)
 3. Follow the [RELEASE_PREPARATION_CHECKLIST.md](RELEASE_PREPARATION_CHECKLIST.md) for releases
 
 ### For Architects

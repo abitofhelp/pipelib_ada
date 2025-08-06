@@ -16,7 +16,7 @@ with System.Storage_Elements;
 with Abohlib.Core.Domain.Result;
 with Abohlib.Core.Domain.Value_Objects.File_Path;
 
-package Pipelib.Infrastructure.IO.Memory_Mapped_File is
+package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
 
    use System.Storage_Elements;
    use Abohlib.Core.Domain.Value_Objects.File_Path;
@@ -132,4 +132,4 @@ private
    procedure Finalize (File : in out Memory_Mapped_File);
    --  Ensures file is unmapped when object is destroyed
 
-end Pipelib.Infrastructure.IO.Memory_Mapped_File;
+end Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File;

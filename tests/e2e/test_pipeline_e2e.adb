@@ -14,6 +14,7 @@ with Ada.Directories; use Ada.Directories;
 with Ada.Direct_IO;
 with Ada.Calendar; use Ada.Calendar;
 with Abohlib.Core.Domain.Constants.Bytes;
+with Abohlib.Core.Domain.Types.Performance; use Abohlib.Core.Domain.Types.Performance;
 with Pipelib.Core.Domain.Value_Objects.Chunk_Size; use Pipelib.Core.Domain.Value_Objects.Chunk_Size;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk; use Pipelib.Core.Domain.Value_Objects.File_Chunk;
 with Pipelib.Core.Domain.Services.Stages.Generic_Hasher_Stage;
@@ -379,8 +380,8 @@ package body Test_Pipeline_E2E is
          Hash_Result_Val : constant Hash_Result.Result := Finalize_Hash (Stage);
          End_Time : constant Time := Clock;
          Duration_Seconds : constant Duration := End_Time - Start_Time;
-         Throughput_MB : constant Float :=
-            Float (File_Size) / Float (Abohlib.Core.Domain.Constants.Bytes.SI_MB) / Float (Duration_Seconds);
+         Throughput_MB : constant MB_Per_Second_Type :=
+            Calculate_MB_Per_Second (File_Size, Duration_Seconds);
       begin
          if not Hash_Result_Val.Is_Ok then
             Cleanup_Test_Files;
@@ -395,7 +396,7 @@ package body Test_Pipeline_E2E is
 
          Put_Line ("Large file hash: " & To_String (Hash_Result_Val.Get_Ok));
          Put_Line ("Processing time: " & Duration'Image (Duration_Seconds) & " seconds");
-         Put_Line ("Throughput: " & Natural (Throughput_MB)'Image & " MB/s");
+         Put_Line ("Throughput: " & Natural (Float (Throughput_MB))'Image & " MB/s");
       end;
 
       Cleanup_Test_Files;

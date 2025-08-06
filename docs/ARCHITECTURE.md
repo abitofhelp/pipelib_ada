@@ -1,19 +1,215 @@
-# Developer's Architecture Guide
+# Pipelib Architecture Guide
 
-This guide provides practical insights into Pipelib's architecture for developers working with or extending the library. For formal specifications, see the [Software Design Document](SOFTWARE_DESIGN_DOCUMENT.md). For a quick overview, see the [README](../README.md).
+This comprehensive guide covers both the conceptual architecture and practical implementation details of Pipelib. It serves as the single source of truth for all architectural information.
 
 ## Table of Contents
-1. [Design Patterns in Practice](#design-patterns-in-practice)
-2. [Type Safety Architecture](#type-safety-architecture)
-3. [Working with the Architecture](#working-with-the-architecture)
-4. [Performance Architecture](#performance-architecture)
-5. [Extension Points](#extension-points)
-6. [Architecture Decision Records](#architecture-decision-records)
-7. [Troubleshooting Architecture Issues](#troubleshooting-architecture-issues)
 
-## Design Patterns in Practice
+### Part 1: Conceptual Architecture
+1. [Introduction and Design Principles](#1-introduction-and-design-principles)
+2. [System Architecture](#2-system-architecture)
+3. [Package Organization](#3-package-organization)
+4. [Contract Design Strategy](#4-contract-design-strategy)
 
-### Repository Pattern with Result Types
+### Part 2: Practical Implementation
+5. [Design Patterns in Practice](#5-design-patterns-in-practice)
+6. [Type Safety Architecture](#6-type-safety-architecture)
+7. [Working with the Architecture](#7-working-with-the-architecture)
+8. [Performance Architecture](#8-performance-architecture)
+
+### Part 3: Component Specifications
+9. [Core Components](#9-core-components)
+10. [Infrastructure Components](#10-infrastructure-components)
+
+### Part 4: Architecture Guidance
+11. [Extension Points](#11-extension-points)
+12. [Architecture Decision Records](#12-architecture-decision-records)
+13. [Troubleshooting Architecture Issues](#13-troubleshooting-architecture-issues)
+
+---
+
+## Part 1: Conceptual Architecture
+
+## 1. Introduction and Design Principles
+
+### 1.1 Overview
+
+Pipelib is a reusable pipeline components library implemented in Ada 2022, designed for high-performance, concurrent data processing. The architecture emphasizes type safety, memory efficiency, and comprehensive error handling using the Result pattern.
+
+### 1.2 Design Principles
+
+#### 1.2.1 Hybrid Architecture
+- **Domain-Driven Design (DDD)**: Rich domain models with behavior encapsulation
+- **Clean Architecture**: Dependency inversion and separation of concerns
+- **Hexagonal Architecture**: Ports and adapters pattern for external integration
+
+#### 1.2.2 Ada 2022 Best Practices
+- Comprehensive contract usage (Pre, Post, Type_Invariant, Dynamic_Predicate)
+- Memory safety through ownership and RAII patterns
+- Expression functions for performance and clarity
+- Generic programming for type safety and reusability
+- Strong typing to prevent parameter confusion
+
+#### 1.2.3 Error Handling Strategy
+- Result pattern for all operations that can fail
+- No exception propagation across architectural boundaries
+- Detailed error context for debugging and monitoring
+- Fail-fast design with comprehensive validation
+
+## 2. System Architecture
+
+### 2.1 Overall Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Pipelib Library                         │
+├─────────────────────────────────────────────────────────────────┤
+│                     Core Domain Layer                          │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────┐  │
+│  │  Value Objects  │  │    Entities      │  │   Services     │  │
+│  │  • File_Chunk   │  │    • Chunk       │  │ • Progress     │  │
+│  │  • Chunk_Size   │  │                  │  │   Tracker      │  │
+│  │  • Algorithm    │  │                  │  │                │  │
+│  └─────────────────┘  └──────────────────┘  └────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                   Application Layer                            │
+│  ┌─────────────────────────────────────────────────────────────┐  │
+│  │           Parallel Chunk Processor                         │  │
+│  │  • Worker Management    • Load Balancing                   │  │
+│  │  • Error Aggregation    • Result Coordination             │  │
+│  └─────────────────────────────────────────────────────────────┘  │
+├─────────────────────────────────────────────────────────────────┤
+│                   Infrastructure Layer                         │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────┐  │
+│  │  Memory Mapped   │  │  Random Write    │  │   Chunk       │  │
+│  │  File Adapter    │  │  File Handler    │  │   Adapter     │  │
+│  └──────────────────┘  └──────────────────┘  └───────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+          │                      │                      │
+          ▼                      ▼                      ▼
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   File System   │    │  Memory System  │    │   Threading     │
+│   Operations    │    │   Management    │    │   Runtime       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### 2.2 Layer Responsibilities
+
+#### 2.2.1 Core Domain Layer
+- **Value Objects**: Immutable data containers with validation logic
+- **Entities**: Objects with identity and lifecycle management
+- **Domain Services**: Complex business logic that doesn't belong to entities
+- **Constants**: Centralized configuration values and thresholds in `Pipelib.Core.Domain.Constants`
+
+#### 2.2.2 Application Layer
+- **Use Cases**: Orchestrates domain objects to fulfill application requirements
+- **Service Coordination**: Manages interactions between domain services
+- **Transaction Management**: Ensures consistency across operations
+
+#### 2.2.3 Infrastructure Layer
+- **External Integrations**: File system, memory management, networking
+- **Technology-Specific Implementations**: Memory mapping, concurrent I/O
+- **Resource Management**: Cleanup, monitoring, and lifecycle management
+
+### 2.3 Dependency Flow
+
+```
+Application Layer ────────┐
+     │                    │
+     ▼                    ▼
+Core Domain Layer ◄── Ports (Interfaces)
+     ▲                    │
+     │                    ▼
+Infrastructure Layer ── Adapters (Implementations)
+```
+
+- **Dependency Inversion**: High-level modules do not depend on low-level modules
+- **Interface Segregation**: Clients depend only on interfaces they use
+- **Dependency Injection**: Dependencies provided through constructors/parameters
+
+## 3. Package Organization
+
+```ada
+pipelib/
+├── Core/
+│   ├── Domain/
+│   │   ├── Constants/
+│   │   │   └── pipelib-core-domain-constants.ads  -- Typed constants
+│   │   ├── Entities/
+│   │   │   └── Chunk                    -- Chunk entity with state machine
+│   │   ├── Value_Objects/
+│   │   │   ├── File_Chunk              -- Immutable data chunk
+│   │   │   ├── Chunk_Size              -- Type-safe size representation
+│   │   │   └── Algorithm               -- Algorithm identifier
+│   │   ├── Services/
+│   │   │   └── Progress_Tracker        -- Progress monitoring service
+│   │   └── Ports/
+│   │       └── Memory_Mapped_File_Interface  -- File mapping abstraction
+│   └── Application/
+│       └── Services/
+│           └── Parallel_Chunk_Processor -- Concurrent processing orchestrator
+└── Infrastructure/
+    └── IO/
+        ├── Memory_Mapped_File          -- Memory mapping implementation
+        ├── Memory_Mapped_Chunk_Adapter -- Chunk creation from mapped files
+        └── Random_Write_File           -- Concurrent file writing
+```
+
+## 4. Contract Design Strategy
+
+### 4.1 Contract Types Used
+
+```ada
+-- Preconditions: Input validation
+with Pre => Input /= null and then Input.all'Length > 0
+
+-- Postconditions: Output guarantees
+with Post => Result /= null and then Result.Is_Valid
+
+-- Type Invariants: Always-true properties
+type File_Chunk_Type is private
+with Type_Invariant =>
+  (if not Is_Empty (File_Chunk_Type) then Get_Data (File_Chunk_Type) /= null);
+
+-- Dynamic Predicates: Subtype constraints
+subtype Valid_Chunk_Size is Positive
+with Dynamic_Predicate =>
+  Valid_Chunk_Size >= Min_Chunk_Size and Valid_Chunk_Size <= Max_Chunk_Size;
+  -- Where Min_Chunk_Size = 1KB and Max_Chunk_Size = 512MB from Domain.Constants
+```
+
+### 4.2 Contract Patterns
+
+#### 4.2.1 State Machine Validation
+```ada
+function Set_State
+  (Chunk : in out Chunk_Type;
+   New_State : Chunk_State) return Boolean
+with Pre => Is_Valid_Transition (Get_State (Chunk), New_State),
+     Post => (if Set_State'Result then Get_State (Chunk) = New_State);
+```
+
+#### 4.2.2 Resource Management
+```ada
+procedure Destroy (Processor : in out Parallel_Processor_Access)
+with Post => Processor = null;
+```
+
+#### 4.2.3 Boundary Validation
+```ada
+function Calculate_Optimal_Chunk_Size
+  (File_Size : Storage_Count) return Positive
+with Pre => File_Size > 0,
+     Post => Calculate_Optimal_Chunk_Size'Result >= 1024 and then
+             Calculate_Optimal_Chunk_Size'Result <= Integer (File_Size);
+```
+
+---
+
+## Part 2: Practical Implementation
+
+## 5. Design Patterns in Practice
+
+### 5.1 Repository Pattern with Result Types
 The repository pattern abstracts data access while the Result pattern ensures error handling without exceptions:
 
 ```ada
@@ -21,7 +217,7 @@ The repository pattern abstracts data access while the Result pattern ensures er
 package File_Reader_Interface is
    function Read_Chunk(
       Reader : in out File_Reader;
-      Offset : Long_Long_Integer;
+      Offset : File_Position_Type;
       Size   : Natural
    ) return Chunk_Result.Result;
 end File_Reader_Interface;
@@ -48,7 +244,7 @@ package body Memory_Mapped_File is
 end Memory_Mapped_File;
 ```
 
-### Factory Pattern with Validation
+### 5.2 Factory Pattern with Validation
 Factories ensure objects are created in a valid state:
 
 ```ada
@@ -78,7 +274,7 @@ Factory.Register_Stage("compress", Compression_Stage_Constructor'Access);
 Stage := Factory.Create_Stage(Config);
 ```
 
-### State Machine with Contract Enforcement
+### 5.3 State Machine with Contract Enforcement
 The chunk state machine uses contracts to prevent invalid transitions:
 
 ```ada
@@ -99,7 +295,7 @@ with Pre => Is_Valid_Transition(Chunk.State, New_State),
      Post => Chunk.State = New_State;
 ```
 
-### Template Method for Pipeline Stages
+### 5.4 Template Method for Pipeline Stages
 Generic stages provide a template for custom processing:
 
 ```ada
@@ -141,11 +337,11 @@ package Generic_Pipeline_Stage is
 end Generic_Pipeline_Stage;
 ```
 
-## Type Safety Architecture
+## 6. Type Safety Architecture
 
 Pipelib implements comprehensive type safety to prevent parameter confusion and semantic errors. This section demonstrates practical patterns for leveraging Ada's type system effectively.
 
-### Semantic Type Distinction Strategy
+### 6.1 Semantic Type Distinction Strategy
 
 Rather than using raw `Natural` or `Long_Long_Integer` for all numeric values, Pipelib creates distinct types for different concepts:
 
@@ -164,7 +360,7 @@ type Processing_Time_Ms_Type is new Natural;
 type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
 ```
 
-### Compile-Time Safety Enforcement
+### 6.2 Compile-Time Safety Enforcement
 
 The type system prevents nonsensical operations at compile time:
 
@@ -186,7 +382,7 @@ begin
 end Update_Progress_Safe;
 ```
 
-### Type-Safe Interface Design
+### 6.3 Type-Safe Interface Design
 
 All public interfaces use semantic types to ensure correctness:
 
@@ -207,7 +403,7 @@ function Create_Progress_Report
    Processing_Time  : Processing_Time_Ms_Type) return Progress_Report_Type;
 ```
 
-### Protected Type Safety
+### 6.4 Protected Type Safety
 
 Progress tracking uses distinct types to prevent accidental mixing:
 
@@ -234,7 +430,7 @@ private
 end Progress_Tracker_Type;
 ```
 
-### Conversion Patterns for External Interfaces
+### 6.5 Conversion Patterns for External Interfaces
 
 When interfacing with external code that uses untyped values, provide explicit conversion functions:
 
@@ -262,7 +458,7 @@ begin
 end Handle_External_Request;
 ```
 
-### Type Safety in Generic Programming
+### 6.6 Type Safety in Generic Programming
 
 Generic packages maintain type safety across instantiations:
 
@@ -300,7 +496,7 @@ package Processed_Count_Container is new Typed_Container (
 );
 ```
 
-### Design Benefits and Trade-offs
+### 6.7 Design Benefits and Trade-offs
 
 **Benefits of Type Safety Architecture:**
 - **Compile-time error detection**: Parameter confusion caught at build time
@@ -313,7 +509,7 @@ package Processed_Count_Container is new Typed_Container (
 - **Verbosity**: More type declarations and conversion functions needed
 - **Learning curve**: Developers must understand semantic type distinctions
 
-### Migration from Untyped Code
+### 6.8 Migration from Untyped Code
 
 When converting existing untyped code to use semantic types:
 
@@ -337,9 +533,9 @@ procedure Process_File_New (
 );
 ```
 
-## Working with the Architecture
+## 7. Working with the Architecture
 
-### Layer Responsibilities
+### 7.1 Layer Responsibilities
 
 #### When Working in Domain Layer
 ✅ **DO:**
@@ -408,7 +604,7 @@ begin
 end Process_File;
 ```
 
-### Dependency Injection Patterns
+### 7.2 Dependency Injection Patterns
 
 ```ada
 -- Constructor injection
@@ -441,9 +637,9 @@ begin
 end Process_With_Mocks;
 ```
 
-## Performance Architecture
+## 8. Performance Architecture
 
-### Memory Management Strategy
+### 8.1 Memory Management Strategy
 
 #### Stack vs Heap Allocation
 ```ada
@@ -505,7 +701,7 @@ loop
 end loop;
 ```
 
-### Concurrency Patterns
+### 8.2 Concurrency Patterns
 
 #### Lock-Free Progress Tracking
 ```ada
@@ -558,14 +754,14 @@ private
 end Work_Stealing_Queue;
 ```
 
-### Cache Optimization
+### 8.3 Cache Optimization
 
 ```ada
 -- Align data structures to cache lines
 type Cache_Aligned_Chunk is record
    -- Frequently accessed together (same cache line)
    State : Chunk_State;
-   Number : Natural;
+   Number : Sequence_Number_Type;
    Size : Natural;
    Retry_Count : Natural;
 
@@ -579,9 +775,245 @@ end record
 with Alignment => 64; -- Cache line size
 ```
 
-## Extension Points
+---
 
-### Adding New Processing Stages
+## Part 3: Component Specifications
+
+## 9. Core Components
+
+### 9.1 File_Chunk Value Object
+
+#### Purpose
+Represents an immutable chunk of file data with associated metadata, checksums, and processing state information.
+
+#### Interface Design
+```ada
+package Pipelib.Core.Domain.Value_Objects.File_Chunk is
+
+   type File_Chunk_Type is private
+   with Type_Invariant =>
+     (if not Is_Empty (File_Chunk_Type) then
+        Get_Data (File_Chunk_Type) /= null and then
+        Get_Sequence_Number (File_Chunk_Type) >= 0);
+
+   -- Creation functions
+   function Create_Empty return File_Chunk_Type
+   with Post => Is_Empty (Create_Empty'Result);
+
+   function Create_Chunk
+     (Data : Stream_Element_Array_Access;
+      Sequence_Number : Sequence_Number_Type;
+      File_Position : File_Position_Type;
+      Is_Final : Boolean := False)
+     return File_Chunk_Type
+   with Pre => Data /= null and then Data.all'Length > 0,
+        Post => not Is_Empty (Create_Chunk'Result) and then
+                Get_Sequence_Number (Create_Chunk'Result) = Sequence_Number;
+
+   -- Query functions
+   function Is_Empty (Chunk : File_Chunk_Type) return Boolean;
+   function Get_Data (Chunk : File_Chunk_Type) return Stream_Element_Array_Access;
+   function Get_Sequence_Number (Chunk : File_Chunk_Type) return Sequence_Number_Type;
+   function Get_File_Position (Chunk : File_Chunk_Type) return File_Position_Type;
+   function Is_Final (Chunk : File_Chunk_Type) return Boolean;
+
+   -- Checksum operations
+   function Calculate_Checksum (Chunk : File_Chunk_Type) return String
+   with Pre => not Is_Empty (Chunk);
+
+   function Verify_Checksum (Chunk : File_Chunk_Type; Expected : String) return Boolean
+   with Pre => not Is_Empty (Chunk);
+
+private
+   type File_Chunk_Type is record
+      Data            : Stream_Element_Array_Access;
+      Sequence_Number : Sequence_Number_Type;
+      File_Position   : File_Position_Type;
+      Is_Final        : Boolean;
+      Checksum        : Unbounded_String;
+   end record;
+end File_Chunk;
+```
+
+### 9.2 Progress_Tracker Service
+
+#### Purpose
+Thread-safe service for tracking multi-stage pipeline progress with typed counters.
+
+#### Interface Design
+```ada
+package Pipelib.Core.Domain.Services.Progress_Tracker is
+
+   protected type Progress_Tracker_Type is
+      -- Update procedures (thread-safe)
+      procedure Update_Read_Count (New_Count : Read_Count_Type);
+      procedure Update_Processed_Count (New_Count : Processed_Count_Type);
+      procedure Update_Written_Count (New_Count : Written_Count_Type);
+
+      -- Query functions (thread-safe)
+      function Get_Read_Count return Read_Count_Type;
+      function Get_Processed_Count return Processed_Count_Type;
+      function Get_Written_Count return Written_Count_Type;
+
+      -- Progress percentage calculations
+      function Read_Percentage (Total : Read_Count_Type) return Float
+      with Pre => Total > 0;
+
+      function Processing_Percentage return Float;
+      function Writing_Percentage return Float;
+
+      -- Completion checks
+      function Is_All_Complete (Total_Expected : Read_Count_Type) return Boolean;
+
+   private
+      Chunks_Read      : Read_Count_Type := 0;
+      Chunks_Processed : Processed_Count_Type := 0;
+      Chunks_Written   : Written_Count_Type := 0;
+   end Progress_Tracker_Type;
+
+end Progress_Tracker;
+```
+
+### 9.3 Parallel_Chunk_Processor
+
+#### Purpose
+Orchestrates concurrent chunk processing with worker management and error aggregation.
+
+#### Interface Design
+```ada
+package Pipelib.Core.Application.Services.Parallel_Chunk_Processor is
+
+   type Processor_Config is record
+      Worker_Count    : Worker_Count_Value_Type;
+      Queue_Size      : Positive := 1000;
+      Retry_Limit     : Natural := 3;
+      Retry_Delay_Ms  : Natural := 100;
+   end record;
+
+   type Processor_Type is tagged limited private;
+
+   function Create
+     (Config : Processor_Config;
+      Pipeline : Pipeline_Type'Class) return Processor_Type;
+
+   procedure Process_File
+     (Processor : in out Processor_Type;
+      Input_Path : String;
+      Output_Path : String)
+   with Pre => Is_Valid_Path (Input_Path) and then
+               Is_Valid_Path (Output_Path);
+
+   function Get_Progress (Processor : Processor_Type) return Progress_Info;
+
+   procedure Shutdown (Processor : in out Processor_Type)
+   with Post => not Is_Running (Processor);
+
+private
+   type Worker_Task;
+   type Worker_Task_Access is access Worker_Task;
+
+   type Processor_Type is tagged limited record
+      Config   : Processor_Config;
+      Pipeline : Pipeline_Access;
+      Workers  : Worker_Array;
+      Queue    : Chunk_Queue.Queue_Type;
+      Tracker  : Progress_Tracker.Progress_Tracker_Type;
+   end record;
+end Parallel_Chunk_Processor;
+```
+
+## 10. Infrastructure Components
+
+### 10.1 Memory_Mapped_File
+
+#### Purpose
+Provides efficient file access through memory mapping with zero-copy operations.
+
+#### Interface Design
+```ada
+package Pipelib.Infrastructure.IO.Memory_Mapped_File is
+
+   type Memory_Mapped_File_Type is new File_Reader_Interface with private;
+
+   overriding function Open
+     (File : in out Memory_Mapped_File_Type;
+      Path : String) return Result_Type;
+
+   overriding function Read_Chunk
+     (File : in out Memory_Mapped_File_Type;
+      Position : File_Position_Type;
+      Size : Natural) return Chunk_Result_Type;
+
+   overriding procedure Close (File : in out Memory_Mapped_File_Type);
+
+   -- Memory mapping specific operations
+   function Get_Page_Size return Natural;
+
+   function Advise_Sequential
+     (File : Memory_Mapped_File_Type) return Result_Type;
+
+private
+   type Memory_Mapped_File_Type is new File_Reader_Interface with record
+      File_Descriptor : File_Descriptor_Type;
+      Mapped_Address  : System.Address;
+      File_Size       : File_Position_Type;
+      Is_Open         : Boolean := False;
+   end record;
+end Memory_Mapped_File;
+```
+
+### 10.2 Random_Write_File
+
+#### Purpose
+Enables concurrent, out-of-order chunk writing with thread safety.
+
+#### Interface Design
+```ada
+package Pipelib.Infrastructure.IO.Random_Write_File is
+
+   type Random_Write_File_Type is new File_Writer_Interface with private;
+
+   overriding function Open
+     (File : in out Random_Write_File_Type;
+      Path : String) return Result_Type;
+
+   overriding function Write_Chunk
+     (File : in out Random_Write_File_Type;
+      Chunk : File_Chunk_Type) return Result_Type
+   with Pre => not Is_Empty (Chunk);
+
+   overriding procedure Close (File : in out Random_Write_File_Type);
+
+   -- Random access specific
+   function Preallocate
+     (File : in out Random_Write_File_Type;
+      Size : File_Position_Type) return Result_Type
+   with Pre => Is_Open (File);
+
+private
+   protected type Write_Synchronizer is
+      procedure Write_At
+        (Position : File_Position_Type;
+         Data : Stream_Element_Array;
+         Success : out Boolean);
+   private
+      File_Handle : File_Type;
+   end Write_Synchronizer;
+
+   type Random_Write_File_Type is new File_Writer_Interface with record
+      Synchronizer : Write_Synchronizer;
+      Is_Open      : Boolean := False;
+   end record;
+end Random_Write_File;
+```
+
+---
+
+## Part 4: Architecture Guidance
+
+## 11. Extension Points
+
+### 11.1 Adding New Processing Stages
 
 1. **Define the transformation**:
 ```ada
@@ -609,7 +1041,7 @@ Pipeline_Factory.Register_Stage(
 );
 ```
 
-### Adding New I/O Backends
+### 11.2 Adding New I/O Backends
 
 1. **Implement the port interface**:
 ```ada
@@ -620,7 +1052,7 @@ end record;
 
 overriding function Read_Chunk(
    Reader : in out S3_File_Reader;
-   Offset : Long_Long_Integer;
+   Offset : File_Position_Type;
    Size   : Natural
 ) return Chunk_Result.Result;
 ```
@@ -633,7 +1065,7 @@ IO_Factory.Register_Reader(
 );
 ```
 
-### Custom Progress Reporters
+### 11.3 Custom Progress Reporters
 
 ```ada
 -- Define custom reporter interface
@@ -655,7 +1087,7 @@ type Metrics_Reporter is new Progress_Reporter with record
 end record;
 ```
 
-## Architecture Decision Records
+## 12. Architecture Decision Records
 
 ### ADR-001: Result Type Over Exceptions
 **Status**: Accepted
@@ -708,9 +1140,9 @@ end record;
 - ✅ Easier code navigation and understanding
 - ❌ Slightly longer type names
 
-## Troubleshooting Architecture Issues
+## 13. Troubleshooting Architecture Issues
 
-### Layer Violations
+### 13.1 Layer Violations
 
 **Symptom**: Compilation errors about missing dependencies
 **Diagnosis**: Check with statements for cross-layer imports
@@ -734,7 +1166,7 @@ end File_Reader_Interface;
 type Memory_Mapped_File is new File_Reader_Interface.File_Reader with ...
 ```
 
-### Performance Bottlenecks
+### 13.2 Performance Bottlenecks
 
 **Symptom**: Lower than expected throughput
 **Diagnosis**: Profile with gprof
@@ -749,7 +1181,7 @@ gprof ./pipeline_benchmark | head -20
 3. **Cache misses**: Align data structures
 4. **False sharing**: Pad to cache line boundaries
 
-### Memory Leaks
+### 13.3 Memory Leaks
 
 **Symptom**: Growing memory usage
 **Diagnosis**: Use valgrind
@@ -772,7 +1204,7 @@ begin
 end Finalize;
 ```
 
-### Contract Violations
+### 13.4 Contract Violations
 
 **Symptom**: Assertion_Error at runtime
 **Diagnosis**: Enable full contract checking
@@ -795,7 +1227,7 @@ else
 end if;
 ```
 
-### Type Safety Issues
+### 13.5 Type Safety Issues
 
 **Symptom**: Compilation errors about incompatible types
 **Diagnosis**: Check for mixing semantically different types
@@ -827,7 +1259,7 @@ procedure Process_Chunk (
 
 ## Summary
 
-This guide provides practical patterns and solutions for working with Pipelib's architecture. The key principles are:
+This guide provides comprehensive architectural patterns and solutions for working with Pipelib. The key principles are:
 
 1. **Respect layer boundaries** - Domain → Application → Infrastructure
 2. **Enforce type safety** - Use distinct semantic types to prevent parameter confusion
@@ -836,4 +1268,4 @@ This guide provides practical patterns and solutions for working with Pipelib's 
 5. **Handle errors explicitly** - Result types over exceptions
 6. **Design for concurrency** - Thread-safe by design
 
-For formal specifications, see the [Software Design Document](SOFTWARE_DESIGN_DOCUMENT.md). For API details, see the source code contracts.
+For formal requirements, see the [Software Requirements Specification](SOFTWARE_REQUIREMENTS_SPECIFICATION.md). For testing guidance and strategies, see the [Testing Guide](TESTING_GUIDE.md).

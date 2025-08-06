@@ -13,6 +13,7 @@ with Interfaces.C;
 package body Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
 
    use Ada.Strings.Unbounded;
+   use Abohlib.Core.Domain.Types.Bytes;
 
    use type Interfaces.C.int;
    use type Interfaces.C.size_t;
@@ -288,8 +289,8 @@ package body Pipelib.Infrastructure.Adapters.IO.Unix_Memory_Map is
 
    --  Determine if a file should be memory mapped based on size
    function Should_Use_Memory_Map
-     (File_Size : Long_Long_Integer;
-      Threshold : Long_Long_Integer := 100 * 1024 * 1024) return Boolean is
+     (File_Size : Abohlib.Core.Domain.Types.Bytes.File_Size_Type;
+      Threshold : Abohlib.Core.Domain.Types.Bytes.File_Size_Type := 100_000_000) return Boolean is
    begin
       return File_Size >= Threshold and then Is_Memory_Mapping_Available;
    end Should_Use_Memory_Map;

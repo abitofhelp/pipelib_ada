@@ -18,7 +18,7 @@ package body Pipelib.Core.Application.DTOs is
    begin
       return
         (Data_Address    => Data_Address,
-         Data_Size       => Data_Size,
+         Data_Size       => Buffer_Size_Type (Data_Size),
          File_Position   => File_Position,
          Sequence_Number => Sequence_Number,
          Priority        => Priority,
@@ -33,7 +33,7 @@ package body Pipelib.Core.Application.DTOs is
       return
         (Success            => True,
          Actual_Sequence    => Sequence,
-         Bytes_Processed    => Bytes_Processed,
+         Bytes_Processed    => SI_Bytes_Type (Bytes_Processed),
          Processing_Time_Ms => Processing_Time,
          Error_Message      => Null_Unbounded_String);
    end Create_Success_Response;

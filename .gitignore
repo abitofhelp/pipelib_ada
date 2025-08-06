@@ -39,7 +39,3 @@ coverage/
 
 # Documentation
 doc/_build/
-
-# AI Agent files
-.claude
-CLAUDE.md

@@ -104,7 +104,7 @@ with Pipelib.Core.Domain.Ports.File_Writer_Interface;
 with Abohlib.Core.Domain.Result;
 with Ada.Strings.Unbounded; use Ada.Strings.Unbounded;
 
-package Pipelib.Infrastructure.IO.Random_Write_File is
+package Pipelib.Infrastructure.Adapters.IO.Random_Write_File is
 
    --  ## Random Access File Writer Types
    --
@@ -519,4 +519,4 @@ private
    overriding
    procedure Finalize (File : in out Random_Write_File);
 
-end Pipelib.Infrastructure.IO.Random_Write_File;
+end Pipelib.Infrastructure.Adapters.IO.Random_Write_File;

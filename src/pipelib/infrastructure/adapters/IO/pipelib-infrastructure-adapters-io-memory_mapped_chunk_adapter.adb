@@ -14,7 +14,7 @@ with Ada.Streams;                                  use Ada.Streams;
 with Pipelib.Core.Domain.Value_Objects.File_Chunk;
 use Pipelib.Core.Domain.Value_Objects.File_Chunk;
 
-package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
+package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter is
    --  Create chunks from memory-mapped file with zero-copy access
    function Create_Chunks_From_Memory_Map
      (Map          : Memory_Mapped_File_Interface'Class;
@@ -212,4 +212,4 @@ package body Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter is
       return Result;
    end Memory_To_Stream_Elements;
 
-end Pipelib.Infrastructure.IO.Memory_Mapped_Chunk_Adapter;
+end Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter;

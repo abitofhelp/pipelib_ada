@@ -585,10 +585,14 @@ Pipelib implements a comprehensive type safety system that eliminates entire cla
 ### 5.2 Type Safety Principles
 
 #### 5.2.1 Semantic Type Distinction
-Rather than using generic types like `Natural` or `Long_Long_Integer` for different concepts, Pipelib defines distinct types for each semantic domain:
+Rather than using generic types like `Natural` or `Long_Long_Integer` for different concepts, Pipelib leverages strong types from Abohlib and defines additional domain-specific types:
 
 ```ada
--- Prevent mixing different kinds of progress counts
+-- From Abohlib: Strong types for byte sizes
+with Abohlib.Core.Domain.Types.Bytes; use Abohlib.Core.Domain.Types.Bytes;
+Chunk_Size : SI_Bytes_Type := From_MB(16);  -- Type-safe byte measurements
+
+-- Pipelib-specific: Prevent mixing different kinds of progress counts
 type Read_Count_Type is new Natural;        -- Chunks read from input
 type Processed_Count_Type is new Natural;   -- Chunks processed/transformed
 type Written_Count_Type is new Natural;     -- Chunks written to output
@@ -597,9 +601,10 @@ type Written_Count_Type is new Natural;     -- Chunks written to output
 type File_Position_Type is new Long_Long_Integer range 0 .. Long_Long_Integer'Last;
 type Sequence_Number_Type is new Natural;
 
--- Prevent mixing different performance measurements
-type Processing_Time_Ms_Type is new Natural;
-type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
+-- From Abohlib: Performance measurements with units
+with Abohlib.Core.Domain.Types.Performance; use Abohlib.Core.Domain.Types.Performance;
+Throughput : MB_Per_Second_Type;  -- Type-safe throughput
+Progress : Percentage_Type;       -- Range-limited percentage (0.0 .. 100.0)
 ```
 
 #### 5.2.2 Compile-Time Error Prevention
@@ -644,6 +649,9 @@ type Error_Count_Type is new Natural;       -- Errors encountered during process
 
 **Usage Example:**
 ```ada
+with Pipelib.Core.Domain.Constants.Count_Arithmetic;
+use Pipelib.Core.Domain.Constants.Count_Arithmetic;
+
 -- Progress tracker maintains separate typed counts
 type Progress_State is record
    Chunks_Read      : Read_Count_Type := 0;
@@ -651,6 +659,21 @@ type Progress_State is record
    Chunks_Written   : Written_Count_Type := 0;
    Errors           : Error_Count_Type := 0;
 end record;
+
+-- Safe arithmetic operations with count types
+procedure Update_Progress (Progress : in out Progress_State) is
+begin
+   -- Increment operations
+   Progress.Chunks_Read := Increment(Progress.Chunks_Read);
+
+   -- Addition with same types
+   Progress.Chunks_Processed := Progress.Chunks_Processed + Processed_Count_Type(1);
+
+   -- Calculate totals requires explicit conversion
+   Total : Natural := Natural(Progress.Chunks_Read) +
+                      Natural(Progress.Chunks_Processed) +
+                      Natural(Progress.Chunks_Written);
+end Update_Progress;
 ```
 
 #### 5.3.2 Position and Identification Types
