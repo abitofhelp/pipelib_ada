@@ -25,10 +25,10 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    is ((Bytes => MAX_CHUNK_SIZE));
 
    --  Convenience constructors (expression functions for performance)
-   function From_KB (KB : Natural) return Chunk_Size_Type
+   function From_KB (KB : Long_Long_Integer) return Chunk_Size_Type
    is ((Bytes => SI_Bytes_Type (KB) * SI_KB));
 
-   function From_MB (MB : Natural) return Chunk_Size_Type
+   function From_MB (MB : Long_Long_Integer) return Chunk_Size_Type
    is ((Bytes => SI_Bytes_Type (MB) * SI_MB));
 
    --  Named size constructors (expression functions for performance)

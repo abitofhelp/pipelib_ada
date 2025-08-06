@@ -169,7 +169,7 @@ package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
 
       --  Return memory view for zero-copy access
       declare
-         View : constant Memory_View :=
+         View : constant Memory_View_Type :=
            (Address => Map_Addr, Size => File_Size);
       begin
          return Map_Result.Ok (View);
@@ -197,7 +197,7 @@ package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    end Is_Mapped;
 
    --  Get the current memory view
-   function Get_View (File : Memory_Mapped_File) return Memory_View is
+   function Get_View (File : Memory_Mapped_File) return Memory_View_Type is
    begin
       return (Address => File.Map_Address, Size => File.Map_Size);
    end Get_View;
@@ -212,7 +212,7 @@ package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    function Create_Subview
      (File   : Memory_Mapped_File;
       Offset : Storage_Count;
-      Length : Storage_Count) return Memory_View
+      Length : Storage_Count) return Memory_View_Type
    is
 
       Subview_Address : constant System.Address := File.Map_Address + Offset;
@@ -287,7 +287,7 @@ package body Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    --  Determine if a file should be memory mapped based on size
    function Should_Use_Memory_Map
      (File_Size : Long_Long_Integer;
-      Threshold : Long_Long_Integer := 100 * 1024 * 1024) return Boolean is
+      Threshold : Long_Long_Integer := Long_Long_Integer(SI_MB * 100)) return Boolean is
    begin
       return File_Size >= Threshold and then Is_Memory_Mapping_Available;
    end Should_Use_Memory_Map;

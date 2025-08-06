@@ -81,8 +81,8 @@ package Pipelib.Core.Domain.Value_Objects.File_Chunk is
    --  Access type for stream element arrays
    type Stream_Element_Array_Access is access Stream_Element_Array;
 
-   --  Maximum chunk data size (512MB max)
-   MAX_CHUNK_DATA_SIZE : constant := 512 * 1_000_000;
+   --  Maximum chunk data size (512 MB)
+   MAX_CHUNK_DATA_SIZE : constant := Natural(SI_MB * 512);
 
    --  Exception-based error handling (temporary until Result pattern can be properly implemented)
    File_Chunk_Error : exception;

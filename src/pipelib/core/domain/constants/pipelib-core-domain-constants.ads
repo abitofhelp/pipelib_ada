@@ -48,41 +48,41 @@ package Pipelib.Core.Domain.Constants is
    type Throughput_MBps_Type is new Float range 0.0 .. Float'Last;
 
    --  =====================================================================
-   --  Base Units
+   --  Base Units (following SI standard: powers of 1000)
    --  =====================================================================
 
-   KB : constant Byte_Count_Type := 1_000;
-   MB : constant Byte_Count_Type := 1_000_000;
-   GB : constant Byte_Count_Type := 1_000_000_000;
+   SI_KB : constant Byte_Count_Type := 1_000;
+   SI_MB : constant Byte_Count_Type := 1_000_000;
+   SI_GB : constant Byte_Count_Type := 1_000_000_000;
 
    --  =====================================================================
    --  File Size Thresholds
    --  =====================================================================
 
-   Small_File_Threshold  : constant Byte_Count_Type := 10 * MB;     -- 10MB
-   Medium_File_Threshold : constant Byte_Count_Type := 100 * MB;    -- 100MB
-   Large_File_Threshold  : constant Byte_Count_Type := GB;          -- 1GB
+   Small_File_Threshold  : constant Byte_Count_Type := 10 * SI_MB;     -- 10MB
+   Medium_File_Threshold : constant Byte_Count_Type := 100 * SI_MB;    -- 100MB
+   Large_File_Threshold  : constant Byte_Count_Type := SI_GB;          -- 1GB
 
    --  =====================================================================
    --  Chunk Size Constants
    --  =====================================================================
 
-   Small_Chunk_Size  : constant Byte_Count_Type := 64 * KB;         -- 64KB
-   Medium_Chunk_Size : constant Byte_Count_Type := MB;              -- 1MB
-   Large_Chunk_Size  : constant Byte_Count_Type := 4 * MB;         -- 4MB
-   Huge_Chunk_Size   : constant Byte_Count_Type := 16 * MB;        -- 16MB
+   Small_Chunk_Size  : constant Byte_Count_Type := 64 * SI_KB;         -- 64KB
+   Medium_Chunk_Size : constant Byte_Count_Type := SI_MB;              -- 1MB
+   Large_Chunk_Size  : constant Byte_Count_Type := 4 * SI_MB;         -- 4MB
+   Huge_Chunk_Size   : constant Byte_Count_Type := 16 * SI_MB;        -- 16MB
 
    --  Default and limit values for chunk sizes
    Default_Chunk_Size : constant Byte_Count_Type := Small_Chunk_Size;  -- 64KB
-   Min_Chunk_Size     : constant Byte_Count_Type := KB;               -- 1KB
-   Max_Chunk_Size     : constant Byte_Count_Type := 512 * MB;        -- 512MB
+   Min_Chunk_Size     : constant Byte_Count_Type := SI_KB;               -- 1KB
+   Max_Chunk_Size     : constant Byte_Count_Type := 512 * SI_MB;        -- 512MB
 
    --  =====================================================================
    --  Memory Map Size Limits
    --  =====================================================================
 
-   Min_Memory_Map_Size : constant Byte_Count_Type := 100 * MB;      -- 100MB
-   Max_Memory_Map_Size : constant Byte_Count_Type := GB;            -- 1GB
+   Min_Memory_Map_Size : constant Byte_Count_Type := 100 * SI_MB;      -- 100MB
+   Max_Memory_Map_Size : constant Byte_Count_Type := SI_GB;            -- 1GB
 
    --  =====================================================================
    --  Worker Count Limits

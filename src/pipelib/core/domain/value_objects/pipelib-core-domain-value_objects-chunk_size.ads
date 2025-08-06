@@ -72,19 +72,21 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    with Post => Value (Max'Result) = MAX_CHUNK_SIZE and Is_Valid (Max'Result);
 
    --  Convenience constructors
-   function From_KB (KB : Natural) return Chunk_Size_Type
+   function From_KB (KB : Long_Long_Integer) return Chunk_Size_Type
    with
      Pre =>
-       SI_Bytes_Type (KB) * SI_KB >= MIN_CHUNK_SIZE
+       KB >= 0
+       and SI_Bytes_Type (KB) * SI_KB >= MIN_CHUNK_SIZE
        and SI_Bytes_Type (KB) * SI_KB <= MAX_CHUNK_SIZE,
      Post =>
        Value (From_KB'Result) = SI_Bytes_Type (KB) * SI_KB
        and Is_Valid (From_KB'Result);
 
-   function From_MB (MB : Natural) return Chunk_Size_Type
+   function From_MB (MB : Long_Long_Integer) return Chunk_Size_Type
    with
      Pre =>
-       SI_Bytes_Type (MB) * SI_MB >= MIN_CHUNK_SIZE
+       MB >= 0
+       and SI_Bytes_Type (MB) * SI_MB >= MIN_CHUNK_SIZE
        and SI_Bytes_Type (MB) * SI_MB <= MAX_CHUNK_SIZE,
      Post =>
        Value (From_MB'Result) = SI_Bytes_Type (MB) * SI_MB

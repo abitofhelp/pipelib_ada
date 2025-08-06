@@ -74,7 +74,7 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
 
       if File_Size <= SI_MB_LLI then
          --  Tiny files: Minimize overhead
-         if File_Size < 64 * SI_KB_LLI then
+         if File_Size < SI_KB_LLI * 64 then
             Optimal_Count := 1;  -- Very small files
          else
             Optimal_Count := 2;  -- Small files < 1MB

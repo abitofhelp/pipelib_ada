@@ -118,21 +118,21 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter is
    --  ```ada
    --  -- High-throughput sequential processing
    --  High_Throughput_Config : constant Chunk_Config := (
-   --     Default_Chunk_Size => 1024 * 1024,  -- 1MB chunks
+   --     Default_Chunk_Size => Natural(Pipelib.Core.Domain.Constants.SI_MB),  -- 1MB chunks
    --     Calculate_Checksums => False,       -- Skip checksums for speed
    --     Use_Sequential_Access => True       -- Optimize for sequential access
    --  );
    --
    --  -- Integrity-focused processing
    --  Integrity_Config : constant Chunk_Config := (
-   --     Default_Chunk_Size => 64 * 1024,    -- 64KB chunks (default)
+   --     Default_Chunk_Size => Natural(Pipelib.Core.Domain.Constants.SI_KB * 64),    -- 64KB chunks (default)
    --     Calculate_Checksums => True,        -- Always verify integrity
    --     Use_Sequential_Access => True       -- Sequential optimization
    --  );
    --
    --  -- Memory-constrained processing
    --  Low_Memory_Config : constant Chunk_Config := (
-   --     Default_Chunk_Size => 16 * 1024,    -- 16KB chunks
+   --     Default_Chunk_Size => Natural(Pipelib.Core.Domain.Constants.SI_KB * 16),    -- 16KB chunks
    --     Calculate_Checksums => True,        -- Keep integrity checking
    --     Use_Sequential_Access => True       -- Sequential optimization
    --  );
@@ -211,13 +211,15 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_Chunk_Adapter is
    --  -- Process file segment with custom configuration
    --  declare
    --     Custom_Config : constant Chunk_Config := (
-   --        Default_Chunk_Size => 1024 * 1024,  -- 1MB chunks
+   --        Default_Chunk_Size => Natural(Pipelib.Core.Domain.Constants.SI_MB),  -- 1MB chunks
    --        Calculate_Checksums => False,       -- Skip for performance
    --        Use_Sequential_Access => True
    --     );
    --
-   --     Start : constant Storage_Count := 1024 * 1024;      -- Start at 1MB
-   --     Length : constant Storage_Count := 100 * 1024 * 1024; -- Process 100MB
+   --     Start : constant Storage_Count :=
+   --        Storage_Count(Pipelib.Core.Domain.Constants.SI_MB);      -- Start at 1MB
+   --     Length : constant Storage_Count :=
+   --        Storage_Count(Pipelib.Core.Domain.Constants.SI_MB * 100); -- Process 100MB
    --
    --     Result : constant Chunk_Vector_Result.Result :=
    --        Create_Chunks_From_Memory_Map (

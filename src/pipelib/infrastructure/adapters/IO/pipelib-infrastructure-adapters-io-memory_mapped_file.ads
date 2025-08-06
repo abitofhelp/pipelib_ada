@@ -15,11 +15,13 @@ with System;                use System;
 with System.Storage_Elements;
 with Abohlib.Core.Domain.Result;
 with Abohlib.Core.Domain.Value_Objects.File_Path;
+with Pipelib.Core.Domain.Constants;
 
 package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
 
    use System.Storage_Elements;
    use Abohlib.Core.Domain.Value_Objects.File_Path;
+   use Pipelib.Core.Domain.Constants;
 
    --  Memory mapped file type
    type Memory_Mapped_File is
@@ -27,7 +29,7 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    type Memory_Mapped_File_Access is access all Memory_Mapped_File;
 
    --  Memory map view for zero-copy access
-   type Memory_View is record
+   type Memory_View_Type is record
       Address : System.Address;
       Size    : Storage_Count;
    end record;
@@ -35,7 +37,7 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    --  Result type for memory mapping operations
    package Map_Result is new
      Abohlib.Core.Domain.Result.Result_Package
-       (Ok_Type  => Memory_View,
+       (Ok_Type  => Memory_View_Type,
         Err_Type => Unbounded_String);
 
    --  Map a file into memory
@@ -57,7 +59,7 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    with Inline;
 
    --  Get the current memory view
-   function Get_View (File : Memory_Mapped_File) return Memory_View
+   function Get_View (File : Memory_Mapped_File) return Memory_View_Type
    with
      Pre => Is_Mapped (File),
      Post =>
@@ -74,7 +76,7 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    function Create_Subview
      (File   : Memory_Mapped_File;
       Offset : Storage_Count;
-      Length : Storage_Count) return Memory_View
+      Length : Storage_Count) return Memory_View_Type
    with
      Pre =>
        Is_Mapped (File)
@@ -109,7 +111,7 @@ package Pipelib.Infrastructure.Adapters.IO.Memory_Mapped_File is
    --  Determine if a file should be memory mapped based on size
    function Should_Use_Memory_Map
      (File_Size : Long_Long_Integer;
-      Threshold : Long_Long_Integer := 100 * 1024 * 1024) return Boolean
+      Threshold : Long_Long_Integer := Long_Long_Integer(SI_MB * 100)) return Boolean
    with
      Pre => File_Size >= 0 and then Threshold > 0,
      Post => Should_Use_Memory_Map'Result = (File_Size >= Threshold);
