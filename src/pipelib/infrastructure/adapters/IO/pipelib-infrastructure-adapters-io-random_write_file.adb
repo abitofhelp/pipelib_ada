@@ -17,9 +17,7 @@ package body Pipelib.Infrastructure.Adapters.IO.Random_Write_File is
    use Abohlib.Core.Domain.Value_Objects.File_Path;
    use Pipelib.Core.Domain.Value_Objects.File_Chunk;
 
-   --  Local constants (literal matching abohlib SI value)
-   SI_MB : constant := 1_000_000;
-   pragma Unreferenced (SI_MB);
+   --  Using abohlib SI constants (no local duplicates)
 
    -- -----------
    --  Create

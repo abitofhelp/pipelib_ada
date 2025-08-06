@@ -2,7 +2,7 @@
 #ifndef PIPELIB_CONFIG_H
 #define PIPELIB_CONFIG_H
 
-#define CRATE_VERSION "1.0.2"
+#define CRATE_VERSION "1.1.0"
 #define CRATE_NAME "pipelib"
 
 #define ALIRE_HOST_OS "macos"
@@ -15,6 +15,6 @@
 #define BUILD_PROFILE_VALIDATION 2
 #define BUILD_PROFILE_DEVELOPMENT 3
 
-#define BUILD_PROFILE  1
+#define BUILD_PROFILE  3
 
 #endif

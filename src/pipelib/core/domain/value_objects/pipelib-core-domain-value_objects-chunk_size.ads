@@ -20,22 +20,22 @@ package Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    --  Chunk size bounds (1KB to 1GB) using typed constants
    MIN_CHUNK_SIZE     : constant SI_Bytes_Type := SI_KB;
    MAX_CHUNK_SIZE     : constant SI_Bytes_Type := SI_GB;
-   DEFAULT_CHUNK_SIZE : constant SI_Bytes_Type := SI_Bytes_Type (16) * SI_MB;
+   DEFAULT_CHUNK_SIZE : constant SI_Bytes_Type := From_MB (16);
 
    --  Common chunk sizes (using typed constants)
-   SIZE_1KB : constant SI_Bytes_Type := SI_Bytes_Type (1) * SI_KB;
-   SIZE_4KB : constant SI_Bytes_Type := SI_Bytes_Type (4) * SI_KB;
-   SIZE_64KB : constant SI_Bytes_Type := SI_Bytes_Type (64) * SI_KB;
-   SIZE_256KB : constant SI_Bytes_Type := SI_Bytes_Type (256) * SI_KB;
-   SIZE_1MB : constant SI_Bytes_Type := SI_Bytes_Type (1) * SI_MB;
-   SIZE_4MB : constant SI_Bytes_Type := SI_Bytes_Type (4) * SI_MB;
-   SIZE_8MB : constant SI_Bytes_Type := SI_Bytes_Type (8) * SI_MB;
-   SIZE_16MB : constant SI_Bytes_Type := SI_Bytes_Type (16) * SI_MB;
-   SIZE_32MB : constant SI_Bytes_Type := SI_Bytes_Type (32) * SI_MB;
-   SIZE_64MB : constant SI_Bytes_Type := SI_Bytes_Type (64) * SI_MB;
-   SIZE_128MB : constant SI_Bytes_Type := SI_Bytes_Type (128) * SI_MB;
-   SIZE_256MB : constant SI_Bytes_Type := SI_Bytes_Type (256) * SI_MB;
-   SIZE_512MB : constant SI_Bytes_Type := SI_Bytes_Type (512) * SI_MB;
+   SIZE_1KB : constant SI_Bytes_Type := From_KB (1);
+   SIZE_4KB : constant SI_Bytes_Type := From_KB (4);
+   SIZE_64KB : constant SI_Bytes_Type := From_KB (64);
+   SIZE_256KB : constant SI_Bytes_Type := From_KB (256);
+   SIZE_1MB : constant SI_Bytes_Type := From_MB (1);
+   SIZE_4MB : constant SI_Bytes_Type := From_MB (4);
+   SIZE_8MB : constant SI_Bytes_Type := From_MB (8);
+   SIZE_16MB : constant SI_Bytes_Type := From_MB (16);
+   SIZE_32MB : constant SI_Bytes_Type := From_MB (32);
+   SIZE_64MB : constant SI_Bytes_Type := From_MB (64);
+   SIZE_128MB : constant SI_Bytes_Type := From_MB (128);
+   SIZE_256MB : constant SI_Bytes_Type := From_MB (256);
+   SIZE_512MB : constant SI_Bytes_Type := From_MB (512);
 
    --  Chunk size type
    type Chunk_Size_Type is private

@@ -211,23 +211,23 @@ package body Test_Chunk_Size is
       begin
          -- Verify preconditions
          pragma Assert (KB > 0, "From_KB precondition: KB > 0");
-         pragma Assert (Long_Long_Integer (KB) * SI_KB >= MIN_CHUNK_SIZE,
+         pragma Assert (Long_Long_Integer (KB) * SI_KB_LLI >= MIN_CHUNK_SIZE,
                        "From_KB precondition: result >= MIN");
-         pragma Assert (Long_Long_Integer (KB) * SI_KB <= MAX_CHUNK_SIZE,
+         pragma Assert (Long_Long_Integer (KB) * SI_KB_LLI <= MAX_CHUNK_SIZE,
                        "From_KB precondition: result <= MAX");
 
          Size := From_KB (KB);
 
          -- Verify postconditions
          pragma Assert (Is_Valid (Size));
-         pragma Assert (Value (Size) = Long_Long_Integer (KB) * SI_KB);
+         pragma Assert (Value (Size) = Long_Long_Integer (KB) * SI_KB_LLI);
 
-         if Value (Size) /= 256 * SI_KB then
+         if Value (Size) /= 256 * SI_KB_LLI then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_KB(256) size is incorrect"),
                Details     => To_Unbounded_String ("Expected: " &
-                                                  Long_Long_Integer'Image (256 * SI_KB) &
+                                                  Long_Long_Integer'Image (256 * SI_KB_LLI) &
                                                   ", Got: " & Value (Size)'Image),
                Line_Number => 0,
                Test_Name   => To_Unbounded_String ("Test_Common_Sizes")
@@ -241,14 +241,14 @@ package body Test_Chunk_Size is
       begin
          Size := From_MB (MB);
          pragma Assert (Is_Valid (Size));
-         pragma Assert (Value (Size) = Long_Long_Integer (MB) * SI_MB);
+         pragma Assert (Value (Size) = Long_Long_Integer (MB) * SI_MB_LLI);
 
          if Value (Size) /= 10 * SI_MB then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_MB(10) size is incorrect"),
                Details     => To_Unbounded_String ("Expected: " &
-                                                  Long_Long_Integer'Image (10 * SI_MB) &
+                                                  Long_Long_Integer'Image (10 * SI_MB_LLI) &
                                                   ", Got: " & Value (Size)'Image),
                Line_Number => 0,
                Test_Name   => To_Unbounded_String ("Test_Common_Sizes")
@@ -485,7 +485,7 @@ package body Test_Chunk_Size is
 
       -- Test very large file (100TB)
       declare
-         Huge_File : constant Long_Long_Integer := 100 * SI_TB;
+         Huge_File : constant Long_Long_Integer := 100 * SI_TB_LLI;
          Size : constant Chunk_Size_Type := Adaptive_For_Size (Huge_File);
       begin
          pragma Assert (Is_Valid (Size));
@@ -525,7 +525,7 @@ package body Test_Chunk_Size is
       begin
          for KB of KB_Values loop
             declare
-               Expected_Bytes : constant Long_Long_Integer := Long_Long_Integer (KB) * SI_KB;
+               Expected_Bytes : constant Long_Long_Integer := Long_Long_Integer (KB) * SI_KB_LLI;
             begin
                if Expected_Bytes >= MIN_CHUNK_SIZE and Expected_Bytes <= MAX_CHUNK_SIZE then
                   declare

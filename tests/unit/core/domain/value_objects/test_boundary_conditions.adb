@@ -119,7 +119,7 @@ package body Test_Boundary_Conditions is
       begin
          -- Minimum valid KB value (MIN_CHUNK_SIZE = 1KB)
          KB_Size := From_KB (1);
-         if Value (KB_Size) /= Long_Long_Integer (SI_KB) then
+         if Value (KB_Size) /= SI_KB_LLI then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_KB minimum edge case failed"),
@@ -131,10 +131,10 @@ package body Test_Boundary_Conditions is
 
          -- Maximum valid KB value
          declare
-            Max_KB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / Long_Long_Integer (SI_KB));
+            Max_KB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / SI_KB_LLI);
          begin
             KB_Size := From_KB (Max_KB);
-            if Value (KB_Size) /= Long_Long_Integer (Max_KB) * Long_Long_Integer (SI_KB) then
+            if Value (KB_Size) /= Long_Long_Integer (Max_KB) * SI_KB_LLI then
                return Void_Result.Err (Test_Error'(
                   Kind        => Assertion_Failed,
                   Message     => To_Unbounded_String ("From_KB maximum edge case failed"),
@@ -152,7 +152,7 @@ package body Test_Boundary_Conditions is
       begin
          -- Minimum valid MB value
          MB_Size := From_MB (1);
-         if Value (MB_Size) /= Long_Long_Integer (SI_MB) then
+         if Value (MB_Size) /= SI_MB_LLI then
             return Void_Result.Err (Test_Error'(
                Kind        => Assertion_Failed,
                Message     => To_Unbounded_String ("From_MB minimum edge case failed"),
@@ -164,10 +164,10 @@ package body Test_Boundary_Conditions is
 
          -- Maximum valid MB value
          declare
-            Max_MB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / Long_Long_Integer (SI_MB));
+            Max_MB : constant Natural := Natural (Pipelib.Core.Domain.Value_Objects.Chunk_Size.MAX_CHUNK_SIZE / SI_MB_LLI);
          begin
             MB_Size := From_MB (Max_MB);
-            if Value (MB_Size) /= Long_Long_Integer (Max_MB) * Long_Long_Integer (SI_MB) then
+            if Value (MB_Size) /= Long_Long_Integer (Max_MB) * SI_MB_LLI then
                return Void_Result.Err (Test_Error'(
                   Kind        => Assertion_Failed,
                   Message     => To_Unbounded_String ("From_MB maximum edge case failed"),

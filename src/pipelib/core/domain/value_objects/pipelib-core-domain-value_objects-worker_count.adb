@@ -7,15 +7,12 @@
 pragma Ada_2022;
 
 with System.Multiprocessors;
+with Abohlib.Core.Domain.Constants.Bytes;
+use Abohlib.Core.Domain.Constants.Bytes;
 
 package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
 
-   --  Local constants (literals matching abohlib SI values)
-   SI_KB : constant := 1_000;
-   SI_MB : constant := 1_000_000;
-   SI_GB : constant := 1_000_000_000;
-   SI_TB : constant := 1_000_000_000_000;
-   pragma Unreferenced (SI_GB, SI_TB);  -- Keep for future use
+   --  Using abohlib SI constants (no local duplicates)
 
    -- ----------
    --  Create
@@ -73,23 +70,21 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
       Optimal_Count : Natural;
    begin
       --  Empirically optimized worker counts based on extensive benchmarks
-      case File_Size is
+      --  Using if-elsif for flexibility with abohlib constants
+
+      if File_Size <= SI_MB_LLI then
          --  Tiny files: Minimize overhead
+         if File_Size < 64 * SI_KB_LLI then
+            Optimal_Count := 1;  -- Very small files
+         else
+            Optimal_Count := 2;  -- Small files < 1MB
+         end if;
 
-         when 0 .. SI_MB =>
-            if File_Size < 64 * SI_KB then
-               Optimal_Count := 1;  -- Very small files
-
-            else
-               Optimal_Count := 2;  -- Small files < 1MB
-            end if;
-
-            --  Small files: Aggressive parallelism (empirically optimized)
-
-         when SI_MB + 1 .. 50 * SI_MB =>
-            declare
-               Size_MB : constant Float := Float (File_Size) / Float (SI_MB);
-            begin
+      elsif File_Size <= 50 * SI_MB_LLI then
+         --  Small files: Aggressive parallelism (empirically optimized)
+         declare
+            Size_MB : constant Float := Abohlib.Core.Domain.Constants.Bytes.To_MB_Float (File_Size);
+         begin
                if Size_MB <= 5.0 then
                   Optimal_Count := 9;  -- 5MB: 9 workers (+102% performance)
                elsif Size_MB <= 10.0 then
@@ -101,12 +96,11 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
                end if;
             end;
 
-            --  Medium files: Balanced approach
-
-         when 50 * SI_MB + 1 .. 500 * SI_MB =>
-            declare
-               Size_MB : constant Float := Float (File_Size) / Float (SI_MB);
-            begin
+      elsif File_Size <= 500 * SI_MB_LLI then
+         --  Medium files: Balanced approach
+         declare
+            Size_MB : constant Float := Abohlib.Core.Domain.Constants.Bytes.To_MB_Float (File_Size);
+         begin
                if Size_MB <= 100.0 then
                   --  5 to 8 workers
                   Optimal_Count := Natural (5.0 + (Size_MB - 50.0) * 0.06);
@@ -116,11 +110,10 @@ package body Pipelib.Core.Domain.Value_Objects.Worker_Count is
                end if;
             end;
 
-            --  Large files: Conservative to avoid coordination overhead
-
-         when others =>
-            Optimal_Count := 3;  -- 2GB+: 3 workers (+76% performance)
-      end case;
+      else
+         --  Large files: Conservative to avoid coordination overhead
+         Optimal_Count := 3;  -- 2GB+: 3 workers (+76% performance)
+      end if;
 
       --  Ensure within bounds
       if Optimal_Count < Worker_Count_Type'First then

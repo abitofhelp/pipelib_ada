@@ -47,16 +47,16 @@ package body Pipelib.Core.Domain.Value_Objects.Chunk_Size is
    is
       Chunk_Bytes : SI_Bytes_Type;
    begin
-      if Total_Size < SI_Bytes_Type (10) * SI_MB then
+      if Total_Size < From_MB (10) then
          --  Small files: 256KB chunks
          Chunk_Bytes := SIZE_256KB;
-      elsif Total_Size < SI_Bytes_Type (100) * SI_MB then
+      elsif Total_Size < From_MB (100) then
          --  Medium files: 4MB chunks
          Chunk_Bytes := SIZE_4MB;
       elsif Total_Size < SI_GB then
          --  Large files: 16MB chunks
          Chunk_Bytes := SIZE_16MB;
-      elsif Total_Size < SI_Bytes_Type (10) * SI_GB then
+      elsif Total_Size < From_GB (10) then
          --  Very large files: 64MB chunks
          Chunk_Bytes := SIZE_64MB;
       else
